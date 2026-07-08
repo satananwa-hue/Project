@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import type {
+  VenueCategoryDto,
   VenueDetailDto,
   VenueListItemDto,
   VenueRatingSummary,
@@ -80,6 +81,10 @@ export class VenuesService {
     return { items: ordered, page, pageSize };
   }
 
+  async listCategories(): Promise<VenueCategoryDto[]> {
+    return this.prisma.venueCategory.findMany({ orderBy: { name: 'asc' } });
+  }
+
   async getBySlug(slug: string): Promise<VenueDetailDto> {
     const venue = await this.prisma.venue.findUnique({
       where: { slug },
@@ -126,10 +131,12 @@ export class VenuesService {
       distanceM: null,
       rating,
       coverPhotoUrl: coverPhoto?.url ?? null,
+      curatedRating: venue.curatedRating,
       description: venue.description,
       address: venue.address,
       tags: venue.tags.map((t) => t.tag.labelEn),
       status: venue.status,
+      curatedReview: venue.curatedReview,
     };
   }
 
@@ -200,6 +207,7 @@ export class VenuesService {
         distanceM: distanceById.get(venue.id) ?? null,
         rating,
         coverPhotoUrl: coverByVenue.get(venue.id) ?? null,
+        curatedRating: venue.curatedRating,
       };
     });
   }

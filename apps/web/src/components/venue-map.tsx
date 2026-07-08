@@ -37,9 +37,20 @@ export interface VenueMapMarker {
   rating?: { overall: number; reviewCount: number };
 }
 
-export function VenueMap({ markers }: { markers: VenueMapMarker[] }) {
-  const center: [number, number] =
-    markers.length > 0 ? [markers[0].lat, markers[0].lng] : BANGKOK_CENTER;
+export function VenueMap({
+  markers,
+  center,
+  zoom,
+  showCenterPin = false,
+}: {
+  markers: VenueMapMarker[];
+  center?: [number, number];
+  zoom?: number;
+  showCenterPin?: boolean;
+}) {
+  const mapCenter: [number, number] =
+    center ?? (markers.length > 0 ? [markers[0].lat, markers[0].lng] : BANGKOK_CENTER);
+  const mapZoom = zoom ?? (markers.length > 0 ? 13 : 11);
 
   const byCategory = new Map<string, VenueMapMarker[]>();
   for (const marker of markers) {
@@ -50,13 +61,16 @@ export function VenueMap({ markers }: { markers: VenueMapMarker[] }) {
   }
   const categories = [...byCategory.keys()].sort();
 
+  const showPin = showCenterPin && markers.length > 0;
+
   return (
-    <MapContainer
-      center={center}
-      zoom={markers.length > 0 ? 13 : 11}
-      scrollWheelZoom={false}
-      className="h-full w-full"
-    >
+    <div className="relative h-full w-full">
+      <MapContainer
+        center={mapCenter}
+        zoom={mapZoom}
+        scrollWheelZoom={false}
+        className="h-full w-full"
+      >
       {/*
         CARTO's free dark basemap - no API key/billing account needed, unlike
         Google Maps. Matches the app's dark-mode-first branding instead of the
@@ -88,7 +102,17 @@ export function VenueMap({ markers }: { markers: VenueMapMarker[] }) {
       ) : (
         markers.map((marker) => <VenueMarker key={marker.id} marker={marker} />)
       )}
-    </MapContainer>
+      </MapContainer>
+
+      {showPin ? (
+        <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full">
+          <div className="relative">
+            <div className="h-4 w-4 rounded-full bg-accent border-2 border-white shadow-xl" />
+            <div className="absolute left-1/2 top-full -translate-x-1/2 h-0 w-0 border-x-4 border-x-transparent border-t-4 border-t-accent" />
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

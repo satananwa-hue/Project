@@ -94,6 +94,7 @@ export default async function VenuePage({ params }: Props) {
               rating: venue.rating,
             },
           ]}
+          showCenterPin
         />
       </div>
 

@@ -13,6 +13,13 @@ export class VenuesController {
     return this.venuesService.search(query);
   }
 
+  // Must be registered before ':slug' - otherwise NestJS would match
+  // "categories" as a slug value and this route would never be reached.
+  @Get('categories')
+  listCategories() {
+    return this.venuesService.listCategories();
+  }
+
   @Get(':slug')
   getBySlug(@Param('slug') slug: string) {
     return this.venuesService.getBySlug(slug);

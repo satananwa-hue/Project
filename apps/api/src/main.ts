@@ -15,6 +15,8 @@ async function bootstrap() {
     origin: (process.env.CORS_ORIGINS ?? 'http://localhost:3000').split(','),
     credentials: true,
   });
+  // Deliberately no ADMIN_USERNAME/ADMIN_PASSWORD fallback here - see
+  // AdminService.authenticate for why a default would be a real vulnerability.
   app.setGlobalPrefix('api');
   await app.listen(process.env.PORT ?? 4000);
 }

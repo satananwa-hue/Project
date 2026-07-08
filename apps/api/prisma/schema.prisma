@@ -196,6 +196,14 @@ model Venue {
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 
+  // Admin-curated content for phases with no reviewer-driven ratings yet
+  // (e.g. the discovery-only mobile app). Deliberately separate from the
+  // community rating system (Review/VenueRatingAggregate) rather than
+  // reusing it - conflating "an admin's opinion" with "the community's
+  // aggregate opinion" would misrepresent both once real reviews exist.
+  curatedRating Float?
+  curatedReview String?
+
   city     City           @relation(fields: [cityId], references: [id])
   category VenueCategory? @relation(fields: [categoryId], references: [id])
 
