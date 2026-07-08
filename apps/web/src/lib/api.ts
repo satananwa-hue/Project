@@ -1,4 +1,4 @@
-import type { VenueDetailDto, VenueListItemDto } from "@nightcheck/shared-types";
+import type { VenueDetailDto, VenueListItemDto } from "@chiwitrakmaochaaowelarakkhrai/shared-types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 

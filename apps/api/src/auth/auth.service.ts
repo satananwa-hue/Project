@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { OtpService } from './otp.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { InvitesService } from '../invites/invites.service';
-import type { AuthSession } from '@nightcheck/shared-types';
+import type { AuthSession } from '@chiwitrakmaochaaowelarakkhrai/shared-types';
 
 @Injectable()
 export class AuthService {

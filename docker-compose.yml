@@ -3,13 +3,13 @@ services:
     image: postgis/postgis:16-3.4
     restart: unless-stopped
     environment:
-      POSTGRES_USER: nightcheck
-      POSTGRES_PASSWORD: nightcheck
-      POSTGRES_DB: nightcheck
+      POSTGRES_USER: chiwitrakmaochaaowelarakkhrai
+      POSTGRES_PASSWORD: chiwitrakmaochaaowelarakkhrai
+      POSTGRES_DB: chiwitrakmaochaaowelarakkhrai
     ports:
       - "5432:5432"
     volumes:
-      - nightcheck_pg_data:/var/lib/postgresql/data
+      - chiwitrakmaochaaowelarakkhrai_pg_data:/var/lib/postgresql/data
 
 volumes:
-  nightcheck_pg_data:
+  chiwitrakmaochaaowelarakkhrai_pg_data:

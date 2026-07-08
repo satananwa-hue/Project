@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = `${venue.name} — Reviews & Ratings`;
   const description =
     venue.description ??
-    `${venue.rating.reviewCount} reviews from NightCheck's trusted reviewer community. Rated ${venue.rating.overall.toFixed(1)}/5.`;
+    `${venue.rating.reviewCount} reviews from ChiWitRakMaoChaAoWelaRakKhrai's trusted reviewer community. Rated ${venue.rating.overall.toFixed(1)}/5.`;
 
   return {
     title,

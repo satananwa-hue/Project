@@ -1,4 +1,4 @@
-# NightCheck
+# ChiWitRakMaoChaAoWelaRakKhrai
 
 Invite-only nightlife community for discovering and reviewing bars and clubs in Thailand.
 Public users can discover; only invited reviewers can contribute.

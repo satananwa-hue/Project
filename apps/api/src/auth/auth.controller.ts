@@ -9,7 +9,10 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
-import { requestOtpSchema, verifyOtpSchema } from '@nightcheck/shared-types';
+import {
+  requestOtpSchema,
+  verifyOtpSchema,
+} from '@chiwitrakmaochaaowelarakkhrai/shared-types';
 import { AuthService } from './auth.service';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 

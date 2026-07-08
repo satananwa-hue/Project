@@ -4,7 +4,7 @@ import { VenueCard } from "@/components/venue-card";
 
 export const metadata: Metadata = {
   title: "Venues in Bangkok",
-  description: "Browse bars, clubs, rooftops, and lounges reviewed by NightCheck's trusted reviewer community.",
+  description: "Browse bars, clubs, rooftops, and lounges reviewed by ChiWitRakMaoChaAoWelaRakKhrai's trusted reviewer community.",
 };
 
 export default async function VenuesPage() {

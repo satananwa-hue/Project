@@ -1,5 +1,5 @@
 import { Controller, Get, Param, Query, UsePipes } from '@nestjs/common';
-import { venueSearchSchema } from '@nightcheck/shared-types';
+import { venueSearchSchema } from '@chiwitrakmaochaaowelarakkhrai/shared-types';
 import { VenuesService } from './venues.service';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 

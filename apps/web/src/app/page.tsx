@@ -11,8 +11,8 @@ export default function HomePage() {
           Bangkok nightlife, reviewed by people who were actually there.
         </h1>
         <p className="max-w-xl text-lg text-muted">
-          NightCheck is an invite-only community of reviewers. Anyone can discover — only
-          trusted members can contribute.
+          ChiWitRakMaoChaAoWelaRakKhrai is an invite-only community of reviewers. Anyone can
+          discover — only trusted members can contribute.
         </p>
         <Link
           href="/venues"
@@ -36,7 +36,7 @@ export default function HomePage() {
         <h2 className="text-2xl font-semibold tracking-tight">Become a Reviewer</h2>
         <p className="mx-auto mt-3 max-w-md text-muted">
           Reviewer accounts are invite-only. Ask a current reviewer for an invite, or follow
-          NightCheck for upcoming city launches.
+          ChiWitRakMaoChaAoWelaRakKhrai for upcoming city launches.
         </p>
       </section>
     </div>

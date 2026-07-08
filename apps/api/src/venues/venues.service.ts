@@ -6,7 +6,7 @@ import type {
   VenueListItemDto,
   VenueRatingSummary,
   VenueSearchInput,
-} from '@nightcheck/shared-types';
+} from '@chiwitrakmaochaaowelarakkhrai/shared-types';
 
 interface GeoRow {
   id: string;

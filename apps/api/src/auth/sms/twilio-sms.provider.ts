@@ -32,7 +32,7 @@ export class TwilioSmsProvider implements SmsProvider {
         body: new URLSearchParams({
           To: phone,
           From: fromNumber ?? '',
-          Body: `Your NightCheck code is ${code}. It expires in 5 minutes.`,
+          Body: `Your ChiWitRakMaoChaAoWelaRakKhrai code is ${code}. It expires in 5 minutes.`,
         }),
       },
     );

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { VenueListItemDto } from "@nightcheck/shared-types";
+import type { VenueListItemDto } from "@chiwitrakmaochaaowelarakkhrai/shared-types";
 
 export function VenueCard({ venue }: { venue: VenueListItemDto }) {
   return (
