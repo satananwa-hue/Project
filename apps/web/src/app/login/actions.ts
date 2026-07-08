@@ -8,6 +8,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/a
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // matches API's JWT_EXPIRES_IN default (7d)
 
 type ActionResult = { ok: true } | { ok: false; error: string };
+type RequestOtpResult = { ok: true; devCode?: string } | { ok: false; error: string };
 
 async function readErrorMessage(res: Response): Promise<string> {
   try {
@@ -18,7 +19,7 @@ async function readErrorMessage(res: Response): Promise<string> {
   }
 }
 
-export async function requestOtpAction(phone: string): Promise<ActionResult> {
+export async function requestOtpAction(phone: string): Promise<RequestOtpResult> {
   const res = await fetch(`${API_BASE_URL}/auth/otp/request`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -28,7 +29,10 @@ export async function requestOtpAction(phone: string): Promise<ActionResult> {
   if (!res.ok) {
     return { ok: false, error: await readErrorMessage(res) };
   }
-  return { ok: true };
+  // devCode is only ever present when no real SMS provider is configured
+  // (local/dev) - never in an environment actually sending SMS.
+  const body = (await res.json()) as { devCode?: string };
+  return { ok: true, devCode: body.devCode };
 }
 
 export async function verifyOtpAction(

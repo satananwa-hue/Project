@@ -35,7 +35,11 @@ export class OtpService {
     );
   }
 
-  async requestOtp(phone: string, ip: string): Promise<void> {
+  // Returns the code only when no real SMS provider is configured (dev/local),
+  // so the frontend can show it directly instead of requiring someone to dig
+  // through server logs. Never happens once TWILIO_* is set, i.e. never in an
+  // environment actually sending real SMS.
+  async requestOtp(phone: string, ip: string): Promise<{ devCode?: string }> {
     const phoneHash = hashPhone(phone, this.phoneHashSecret);
     const ipHash = hashPhone(ip, this.phoneHashSecret);
     const windowStart = new Date(Date.now() - 60 * 60 * 1000); // 1 hour window
@@ -71,6 +75,9 @@ export class OtpService {
     });
 
     await this.smsProvider.sendOtp(phone, code);
+
+    const hasRealSmsProvider = !!this.config.get<string>('TWILIO_ACCOUNT_SID');
+    return hasRealSmsProvider ? {} : { devCode: code };
   }
 
   async verifyOtp(phone: string, code: string): Promise<{ phoneHash: string }> {

@@ -17,8 +17,8 @@ export class AuthService {
     private readonly invitesService: InvitesService,
   ) {}
 
-  async requestOtp(phone: string, ip: string): Promise<void> {
-    await this.otpService.requestOtp(phone, ip);
+  async requestOtp(phone: string, ip: string): Promise<{ devCode?: string }> {
+    return this.otpService.requestOtp(phone, ip);
   }
 
   async verifyOtp(

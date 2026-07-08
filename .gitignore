@@ -14,6 +14,11 @@ out/
 # Prisma generated client
 apps/api/generated/
 
+# stray compiled output if a script under scripts/ ever gets emitted directly
+apps/api/scripts/*.js
+apps/api/scripts/*.js.map
+apps/api/scripts/*.d.ts
+
 # logs
 npm-debug.log*
 *.log

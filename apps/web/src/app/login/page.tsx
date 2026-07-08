@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [inviteCode, setInviteCode] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [devCode, setDevCode] = useState<string | null>(null);
 
   function handleRequestOtp(e: React.FormEvent) {
     e.preventDefault();
@@ -23,6 +24,10 @@ export default function LoginPage() {
       if (!result.ok) {
         setError(result.error);
         return;
+      }
+      if (result.devCode) {
+        setDevCode(result.devCode);
+        setCode(result.devCode);
       }
       setStep("code");
     });
@@ -85,6 +90,12 @@ export default function LoginPage() {
         </form>
       ) : (
         <form onSubmit={handleVerifyOtp} className="mt-8 flex flex-col gap-4">
+          {devCode && (
+            <p className="rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-sm">
+              Dev mode (no SMS provider configured) — your code is{" "}
+              <span className="font-mono font-semibold">{devCode}</span>, pre-filled below.
+            </p>
+          )}
           <label className="flex flex-col gap-1 text-sm">
             6-digit code
             <input

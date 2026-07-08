@@ -26,14 +26,11 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('otp/request')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 3, ttl: 60_000 } })
   @UsePipes(new ZodValidationPipe(requestOtpSchema))
-  async request(
-    @Body() body: { phone: string },
-    @Req() req: Request,
-  ): Promise<void> {
-    await this.authService.requestOtp(body.phone, req.ip ?? 'unknown');
+  async request(@Body() body: { phone: string }, @Req() req: Request) {
+    return this.authService.requestOtp(body.phone, req.ip ?? 'unknown');
   }
 
   @Post('otp/verify')
