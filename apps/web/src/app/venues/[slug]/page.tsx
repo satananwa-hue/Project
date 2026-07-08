@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getVenueBySlug } from "@/lib/api";
+import { VenueMap } from "@/components/venue-map-loader";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -79,6 +80,12 @@ export default async function VenuePage({ params }: Props) {
       </div>
 
       {venue.description && <p className="mt-6 leading-relaxed">{venue.description}</p>}
+
+      <div className="mt-6 h-64 overflow-hidden rounded-xl border border-border">
+        <VenueMap
+          markers={[{ id: venue.id, slug: venue.slug, name: venue.name, lat: venue.lat, lng: venue.lng }]}
+        />
+      </div>
 
       {venue.tags.length > 0 && (
         <div className="mt-6 flex flex-wrap gap-2">

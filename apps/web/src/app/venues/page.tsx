@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTrendingVenues } from "@/lib/api";
 import { VenueCard } from "@/components/venue-card";
+import { VenueMap } from "@/components/venue-map-loader";
 
 export const metadata: Metadata = {
   title: "Venues in Bangkok",
@@ -16,11 +17,16 @@ export default async function VenuesPage() {
       {venues.length === 0 ? (
         <p className="text-muted">No venues yet — check back soon.</p>
       ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {venues.map((venue) => (
-            <VenueCard key={venue.id} venue={venue} />
-          ))}
-        </div>
+        <>
+          <div className="mb-8 h-96 overflow-hidden rounded-xl border border-border">
+            <VenueMap markers={venues} />
+          </div>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {venues.map((venue) => (
+              <VenueCard key={venue.id} venue={venue} />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
