@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { getSession } from "@/lib/session";
+import { ReviewerSidebar } from "@/components/reviewer-sidebar";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,11 +33,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Public users must never be able to tell the reviewer community exists -
+  // logged out, this renders nothing more than a plain "Login" link; logged
+  // in, the sidebar replaces it entirely. No "Become a Reviewer" marketing CTA.
+  const profile = await getSession();
+
   return (
     <html
       lang="en"
@@ -51,12 +58,11 @@ export default function RootLayout({
               <Link href="/venues" className="hover:text-foreground">
                 Venues
               </Link>
-              <Link
-                href="/#become-a-reviewer"
-                className="rounded-full bg-accent px-4 py-2 font-medium text-accent-foreground hover:opacity-90"
-              >
-                Become a Reviewer
-              </Link>
+              {!profile && (
+                <Link href="/login" className="hover:text-foreground">
+                  Login
+                </Link>
+              )}
             </nav>
           </div>
         </header>
@@ -64,6 +70,7 @@ export default function RootLayout({
         <footer className="border-t border-border py-8 text-center text-sm text-muted">
           © {new Date().getFullYear()} {siteName}. Bangkok nightlife, reviewed by people who were actually there.
         </footer>
+        {profile && <ReviewerSidebar profile={profile} />}
       </body>
     </html>
   );

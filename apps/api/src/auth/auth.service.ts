@@ -3,7 +3,10 @@ import { JwtService } from '@nestjs/jwt';
 import { OtpService } from './otp.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { InvitesService } from '../invites/invites.service';
-import type { AuthSession } from '@chiwitrakmaochaaowelarakkhrai/shared-types';
+import type {
+  AuthSession,
+  UserProfile,
+} from '@chiwitrakmaochaaowelarakkhrai/shared-types';
 
 @Injectable()
 export class AuthService {
@@ -50,6 +53,21 @@ export class AuthService {
     return {
       accessToken,
       user: { id: user.id, displayName: user.displayName, role: user.role },
+    };
+  }
+
+  async getProfile(userId: string): Promise<UserProfile> {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+    });
+    return {
+      id: user.id,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      role: user.role,
+      reputationLevel: user.reputationLevel,
+      reputationScore: user.reputationScore,
+      remainingInvites: user.remainingInvites,
     };
   }
 }

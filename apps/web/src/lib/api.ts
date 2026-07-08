@@ -33,6 +33,16 @@ export async function getTrendingVenues(): Promise<VenueListItemDto[]> {
   }
 }
 
+export async function searchVenues(query?: string): Promise<VenueListItemDto[]> {
+  try {
+    const qs = query ? `&query=${encodeURIComponent(query)}` : "";
+    const result = await apiFetch<{ items: VenueListItemDto[] }>(`/venues?pageSize=24${qs}`);
+    return result.items;
+  } catch {
+    return [];
+  }
+}
+
 export async function getVenueBySlug(slug: string): Promise<VenueDetailDto | null> {
   try {
     return await apiFetch<VenueDetailDto>(`/venues/${slug}`);

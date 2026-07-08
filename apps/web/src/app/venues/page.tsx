@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getTrendingVenues } from "@/lib/api";
+import { searchVenues } from "@/lib/api";
 import { VenueCard } from "@/components/venue-card";
 import { VenueMap } from "@/components/venue-map-loader";
 
@@ -8,14 +8,23 @@ export const metadata: Metadata = {
   description: "Browse bars, clubs, rooftops, and lounges reviewed by ChiWitRakMaoChaAoWelaRakKhrai's trusted reviewer community.",
 };
 
-export default async function VenuesPage() {
-  const venues = await getTrendingVenues();
+type Props = {
+  searchParams: Promise<{ query?: string }>;
+};
+
+export default async function VenuesPage({ searchParams }: Props) {
+  const { query } = await searchParams;
+  const venues = await searchVenues(query);
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-16">
-      <h1 className="mb-8 text-3xl font-semibold tracking-tight">Venues in Bangkok</h1>
+      <h1 className="mb-8 text-3xl font-semibold tracking-tight">
+        {query ? `Results for "${query}"` : "Venues in Bangkok"}
+      </h1>
       {venues.length === 0 ? (
-        <p className="text-muted">No venues yet — check back soon.</p>
+        <p className="text-muted">
+          {query ? "No venues matched your search." : "No venues yet — check back soon."}
+        </p>
       ) : (
         <>
           <div className="mb-8 h-96 overflow-hidden rounded-xl border border-border">

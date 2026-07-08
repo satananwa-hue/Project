@@ -23,3 +23,13 @@ export interface AuthSession {
     role: string;
   };
 }
+
+export interface UserProfile {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+  role: string;
+  reputationLevel: number;
+  reputationScore: number;
+  remainingInvites: number;
+}

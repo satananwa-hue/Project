@@ -1,46 +1,34 @@
-import Link from "next/link";
 import { Suspense } from "react";
 import { getTrendingVenues } from "@/lib/api";
 import { VenueCard } from "@/components/venue-card";
+import { VenueMap } from "@/components/venue-map-loader";
+import { VenueSearchBar } from "@/components/venue-search-bar";
 
 export default function HomePage() {
   return (
-    <div className="mx-auto max-w-6xl px-6 py-16">
-      <section className="flex flex-col items-start gap-4 pb-16">
-        <h1 className="max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">
-          Bangkok nightlife, reviewed by people who were actually there.
-        </h1>
-        <p className="max-w-xl text-lg text-muted">
-          ChiWitRakMaoChaAoWelaRakKhrai is an invite-only community of reviewers. Anyone can
-          discover — only trusted members can contribute.
-        </p>
-        <Link
-          href="/venues"
-          className="mt-2 rounded-full bg-accent px-6 py-3 font-medium text-accent-foreground hover:opacity-90"
-        >
-          Explore venues
-        </Link>
+    <div className="flex flex-col">
+      <section className="relative h-[75vh] w-full">
+        <Suspense fallback={<div className="h-full w-full bg-surface-raised" />}>
+          <HomeMap />
+        </Suspense>
+        <div className="pointer-events-none absolute inset-x-0 top-6 flex justify-center px-6">
+          <VenueSearchBar />
+        </div>
       </section>
 
-      <section>
+      <section className="mx-auto w-full max-w-6xl px-6 py-16">
         <h2 className="mb-6 text-xl font-semibold tracking-tight">Trending in Bangkok</h2>
         <Suspense fallback={<TrendingSkeleton />}>
           <TrendingVenues />
         </Suspense>
       </section>
-
-      <section
-        id="become-a-reviewer"
-        className="mt-24 rounded-2xl border border-border bg-surface p-10 text-center"
-      >
-        <h2 className="text-2xl font-semibold tracking-tight">Become a Reviewer</h2>
-        <p className="mx-auto mt-3 max-w-md text-muted">
-          Reviewer accounts are invite-only. Ask a current reviewer for an invite, or follow
-          ChiWitRakMaoChaAoWelaRakKhrai for upcoming city launches.
-        </p>
-      </section>
     </div>
   );
+}
+
+async function HomeMap() {
+  const venues = await getTrendingVenues();
+  return <VenueMap markers={venues} />;
 }
 
 async function TrendingVenues() {

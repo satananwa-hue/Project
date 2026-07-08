@@ -25,6 +25,8 @@ export interface VenueMapMarker {
   name: string;
   lat: number;
   lng: number;
+  categoryName?: string | null;
+  rating?: { overall: number; reviewCount: number };
 }
 
 export function VenueMap({ markers }: { markers: VenueMapMarker[] }) {
@@ -51,9 +53,29 @@ export function VenueMap({ markers }: { markers: VenueMapMarker[] }) {
       {markers.map((marker) => (
         <Marker key={marker.id} position={[marker.lat, marker.lng]}>
           <Popup>
-            <Link href={`/venues/${marker.slug}`} className="font-medium">
-              {marker.name}
-            </Link>
+            <div className="min-w-[10rem]">
+              <Link href={`/venues/${marker.slug}`} className="font-medium">
+                {marker.name}
+              </Link>
+              {marker.categoryName && <p className="text-xs text-muted">{marker.categoryName}</p>}
+              {marker.rating && (
+                <p className="mt-1 text-sm">
+                  {marker.rating.reviewCount > 0 ? (
+                    <>
+                      ★ {marker.rating.overall.toFixed(1)}{" "}
+                      <span className="text-muted">
+                        ({marker.rating.reviewCount} {marker.rating.reviewCount === 1 ? "review" : "reviews"})
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-muted">No reviews yet</span>
+                  )}
+                </p>
+              )}
+              <Link href={`/venues/${marker.slug}`} className="mt-1 inline-block text-sm text-accent">
+                View venue →
+              </Link>
+            </div>
           </Popup>
         </Marker>
       ))}

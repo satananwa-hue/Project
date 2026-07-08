@@ -83,7 +83,17 @@ export default async function VenuePage({ params }: Props) {
 
       <div className="mt-6 h-64 overflow-hidden rounded-xl border border-border">
         <VenueMap
-          markers={[{ id: venue.id, slug: venue.slug, name: venue.name, lat: venue.lat, lng: venue.lng }]}
+          markers={[
+            {
+              id: venue.id,
+              slug: venue.slug,
+              name: venue.name,
+              lat: venue.lat,
+              lng: venue.lng,
+              categoryName: venue.categoryName,
+              rating: venue.rating,
+            },
+          ]}
         />
       </div>
 
