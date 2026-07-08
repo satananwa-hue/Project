@@ -40,6 +40,19 @@ npm run dev                   # runs api (port 4000) and web (port 3000) via tur
 After changing `prisma/schema.prisma`, generate a new migration with
 `cd apps/api && npx prisma migrate dev --name <description>` against your local database.
 
+### Bootstrapping the first reviewer
+
+There's no public reviewer signup and no admin API for creating one (deliberately - see the
+invitation system design). To seed the first reviewer (root of the invite tree, 5 invites) directly
+against whichever database `DATABASE_URL` points at:
+
+```bash
+cd apps/api && npm run seed:reviewer -- "Alice" "+66800000001"
+```
+
+That reviewer can then log in at `/login` with that phone number - OTP codes are logged to the
+server console in dev (no `TWILIO_*` env vars set), not sent as a real SMS.
+
 ## Data model
 
 See `apps/api/prisma/schema.prisma` for the full schema. Key design decisions:
