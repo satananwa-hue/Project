@@ -1,7 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 
-export const ADMIN_SESSION_COOKIE = "nc_admin_session";
+export const SESSION_COOKIE = "nc_admin_session";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
@@ -11,12 +11,12 @@ export interface AdminProfile {
   role: string;
 }
 
-export async function getAdminSessionToken(): Promise<string | null> {
-  return (await cookies()).get(ADMIN_SESSION_COOKIE)?.value ?? null;
+export async function getSessionToken(): Promise<string | null> {
+  return (await cookies()).get(SESSION_COOKIE)?.value ?? null;
 }
 
-export async function getAdminSession(): Promise<AdminProfile | null> {
-  const token = await getAdminSessionToken();
+export async function getSession(): Promise<AdminProfile | null> {
+  const token = await getSessionToken();
   if (!token) return null;
 
   try {

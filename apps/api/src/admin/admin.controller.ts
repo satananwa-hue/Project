@@ -26,9 +26,6 @@ export class AdminController {
   @Roles('ADMIN')
   @Get('stats')
   stats() {
-    return {
-      ok: true,
-      message: 'Admin access granted',
-    };
+    return this.adminService.getStats();
   }
 }

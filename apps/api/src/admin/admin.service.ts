@@ -22,12 +22,7 @@ export class AdminService {
       throw new UnauthorizedException('Invalid admin username or password.');
     }
 
-    const [userCount, inviteCount, venueCount] = await Promise.all([
-      this.prisma.user.count(),
-      this.prisma.invite.count(),
-      this.prisma.venue.count(),
-    ]);
-
+    const stats = await this.getStats();
     const accessToken = await this.jwtService.signAsync({
       sub: 'admin',
       role: 'ADMIN',
@@ -35,14 +30,7 @@ export class AdminService {
 
     return {
       accessToken,
-      user: {
-        username,
-        stats: {
-          reviewers: userCount,
-          invites: inviteCount,
-          venues: venueCount,
-        },
-      },
+      user: { username, stats },
     };
   }
 
@@ -54,5 +42,15 @@ export class AdminService {
       username: this.config.getOrThrow<string>('ADMIN_USERNAME'),
       role: 'ADMIN',
     };
+  }
+
+  async getStats() {
+    const [reviewers, invites, venues] = await Promise.all([
+      this.prisma.user.count(),
+      this.prisma.invite.count(),
+      this.prisma.venue.count(),
+    ]);
+
+    return { reviewers, invites, venues };
   }
 }
