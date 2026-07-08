@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:mobile/core/services/location_service.dart';
 import 'package:mobile/data/datasources/venues_remote_data_source.dart';
 import 'package:mobile/data/repositories/venues_repository_impl.dart';
 import 'package:mobile/domain/entities/venue_category.dart';
@@ -18,6 +20,12 @@ final venuesRepositoryProvider = Provider<VenuesRepository>((ref) {
   return VenuesRepositoryImpl(ref.watch(_venuesRemoteDataSourceProvider));
 });
 
+final locationServiceProvider = Provider<LocationService>((ref) => LocationService());
+
+/// Set only after the user taps "Near me" - we never prompt for location on
+/// launch, only on explicit request (see DiscoveryScreen's FAB).
+final userPositionProvider = StateProvider<Position?>((ref) => null);
+
 final categoriesProvider = FutureProvider<List<VenueCategory>>((ref) {
   return ref.watch(venuesRepositoryProvider).listCategories();
 });
@@ -30,7 +38,13 @@ final searchQueryProvider = StateProvider<String>((ref) => '');
 final venuesSearchProvider = FutureProvider.autoDispose<List<VenueSummary>>((ref) {
   final categoryId = ref.watch(selectedCategoryIdProvider);
   final query = ref.watch(searchQueryProvider);
-  return ref.watch(venuesRepositoryProvider).search(categoryId: categoryId, query: query);
+  final position = ref.watch(userPositionProvider);
+  return ref.watch(venuesRepositoryProvider).search(
+        categoryId: categoryId,
+        query: query,
+        lat: position?.latitude,
+        lng: position?.longitude,
+      );
 });
 
 final venueDetailProvider = FutureProvider.family<VenueDetail, String>((ref, slug) {

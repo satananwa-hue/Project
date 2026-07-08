@@ -35,6 +35,7 @@ class VenueCard extends StatelessWidget {
                       [
                         if (venue.categoryName != null) venue.categoryName!,
                         if (venue.priceRange != null) '\$' * venue.priceRange!,
+                        if (venue.distanceM != null) _formatDistance(venue.distanceM!),
                       ].join(' · '),
                       style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13),
                     ),
@@ -53,4 +54,9 @@ class VenueCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatDistance(double meters) {
+  if (meters < 1000) return '${meters.round()} m';
+  return '${(meters / 1000).toStringAsFixed(1)} km';
 }

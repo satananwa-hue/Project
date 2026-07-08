@@ -15,12 +15,25 @@ class VenuesRemoteDataSource {
 
   VenuesRemoteDataSource(this._client);
 
-  Future<List<VenueSummaryModel>> search({String? categoryId, String? query}) async {
+  Future<List<VenueSummaryModel>> search({
+    String? categoryId,
+    String? query,
+    double? lat,
+    double? lng,
+    double radiusM = 15000,
+  }) async {
     final params = <String, String>{
       'cityId': _defaultCityId,
       'pageSize': '50',
       if (categoryId != null) 'categoryId': categoryId,
       if (query != null && query.isNotEmpty) 'query': query,
+      // Passing lat/lng switches the API to distance-ordered results with a
+      // `distanceM` on each item, instead of a plain unordered city listing.
+      if (lat != null && lng != null) ...{
+        'lat': lat.toString(),
+        'lng': lng.toString(),
+        'radiusM': radiusM.toString(),
+      },
     };
     final uri = Uri.parse('${ApiConfig.baseUrl}/venues').replace(queryParameters: params);
     final res = await _client.get(uri);

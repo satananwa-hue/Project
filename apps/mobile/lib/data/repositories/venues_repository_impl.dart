@@ -10,8 +10,13 @@ class VenuesRepositoryImpl implements VenuesRepository {
   VenuesRepositoryImpl(this._remote);
 
   @override
-  Future<List<VenueSummary>> search({String? categoryId, String? query}) {
-    return _remote.search(categoryId: categoryId, query: query);
+  Future<List<VenueSummary>> search({
+    String? categoryId,
+    String? query,
+    double? lat,
+    double? lng,
+  }) {
+    return _remote.search(categoryId: categoryId, query: query, lat: lat, lng: lng);
   }
 
   @override

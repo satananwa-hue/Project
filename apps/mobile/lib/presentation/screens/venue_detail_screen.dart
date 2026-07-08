@@ -4,6 +4,7 @@ import 'package:mobile/core/theme/app_theme.dart';
 import 'package:mobile/presentation/providers/venues_providers.dart';
 import 'package:mobile/presentation/widgets/venue_map_view.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class VenueDetailScreen extends ConsumerWidget {
   final String slug;
@@ -77,6 +78,19 @@ class VenueDetailScreen extends ConsumerWidget {
                           Expanded(child: Text(venue.address)),
                         ],
                       ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () => _openDirections(venue.lat, venue.lng),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: kAccentColor,
+                            foregroundColor: Colors.black,
+                          ),
+                          icon: const Icon(Icons.directions),
+                          label: const Text('Get directions'),
+                        ),
+                      ),
                       if (venue.description != null) ...[
                         const SizedBox(height: 20),
                         Text(venue.description!),
@@ -124,4 +138,12 @@ class VenueDetailScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+// Google Maps' universal directions link - opens the native Maps app on both
+// iOS and Android if installed, otherwise falls back to the browser, so it
+// doesn't need a platform check the way `geo:`/`maps:` URI schemes would.
+Future<void> _openDirections(double lat, double lng) async {
+  final uri = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng');
+  await launchUrl(uri, mode: LaunchMode.externalApplication);
 }
