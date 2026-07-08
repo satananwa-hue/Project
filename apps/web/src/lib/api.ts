@@ -2,9 +2,14 @@ import type { VenueDetailDto, VenueListItemDto } from "@chiwitrakmaochaaowelarak
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
+// A hung fetch (API not deployed yet, cold-starting, network blip) would
+// otherwise block Next.js's static generation until it hits its own 60s
+// per-page timeout and fails the whole build. Aborting early lets the
+// try/catch callers below fall back to empty data instead.
 async function apiFetch<T>(path: string, revalidateSeconds = 60): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     next: { revalidate: revalidateSeconds },
+    signal: AbortSignal.timeout(8000),
   });
   if (!res.ok) {
     throw new Error(`API request failed: ${path} (${res.status})`);
