@@ -20,7 +20,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "seed:reviewer": "ts-node -r tsconfig-paths/register scripts/seed-reviewer.ts"
+    "seed:reviewer": "ts-node -r tsconfig-paths/register scripts/seed-reviewer.ts",
+    "seed:venues": "ts-node -r tsconfig-paths/register scripts/seed-venues.ts"
   },
   "dependencies": {
     "@chiwitrakmaochaaowelarakkhrai/shared-types": "*",
