@@ -1,0 +1,27 @@
+node_modules/
+.turbo/
+dist/
+build/
+.next/
+out/
+
+# env files - never commit secrets
+.env
+.env.*
+!.env.example
+
+# Prisma generated client
+apps/api/generated/
+
+# logs
+npm-debug.log*
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
