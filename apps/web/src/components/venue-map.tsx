@@ -38,9 +38,15 @@ export function VenueMap({ markers }: { markers: VenueMapMarker[] }) {
       scrollWheelZoom={false}
       className="h-full w-full"
     >
+      {/*
+        CARTO's free dark basemap - no API key/billing account needed, unlike
+        Google Maps. Matches the app's dark-mode-first branding instead of the
+        default light OpenStreetMap look.
+      */}
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        subdomains="abcd"
       />
       {markers.map((marker) => (
         <Marker key={marker.id} position={[marker.lat, marker.lng]}>
