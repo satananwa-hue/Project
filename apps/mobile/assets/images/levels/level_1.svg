@@ -1,0 +1,83 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="l1bg" cx="50%" cy="38%" r="62%">
+      <stop offset="0%" stop-color="#181836"/>
+      <stop offset="100%" stop-color="#07070F"/>
+    </radialGradient>
+    <clipPath id="l1clip">
+      <circle cx="100" cy="100" r="98"/>
+    </clipPath>
+  </defs>
+
+  <!-- Base circle -->
+  <circle cx="100" cy="100" r="100" fill="#07070F"/>
+  <circle cx="100" cy="100" r="98" fill="url(#l1bg)"/>
+
+  <!-- Stars – few and faint (new explorer hasn't been out much) -->
+  <circle cx="52" cy="40" r="1.5" fill="#F5C518" opacity="0.30"/>
+  <circle cx="70" cy="24" r="1.0" fill="#F5C518" opacity="0.22"/>
+  <circle cx="148" cy="33" r="2.0" fill="#F5C518" opacity="0.32"/>
+  <circle cx="163" cy="55" r="1.2" fill="#F5C518" opacity="0.26"/>
+  <circle cx="36" cy="68" r="1.5" fill="#F5C518" opacity="0.20"/>
+
+  <g clip-path="url(#l1clip)">
+
+    <!-- Teal jacket body -->
+    <path d="M68 200 Q70 148 86 137 L114 137 Q130 148 132 200 Z" fill="#2A5566"/>
+    <!-- V-collar -->
+    <path d="M86 137 L100 153 L114 137 L107 131 L93 131 Z" fill="#1C3A47"/>
+    <!-- White shirt peek -->
+    <path d="M93 131 L100 141 L107 131" fill="#E6EEF5"/>
+
+    <!-- Neck -->
+    <rect x="93" y="120" width="14" height="13" rx="3" fill="#C9905A"/>
+
+    <!-- Head -->
+    <ellipse cx="100" cy="107" rx="28" ry="30" fill="#C9905A"/>
+
+    <!-- Hair – slightly tousled -->
+    <path d="M73 102 Q72 77 100 75 Q128 77 127 102 Q120 86 100 85 Q80 86 73 102 Z" fill="#2C1A0E"/>
+    <path d="M96 75 Q100 67 104 75" fill="#2C1A0E"/>
+
+    <!-- Wide curious eyes -->
+    <ellipse cx="87" cy="105" rx="7.5" ry="8.5" fill="white"/>
+    <circle cx="88.5" cy="106.5" r="5.5" fill="#1A0A02"/>
+    <circle cx="90.2" cy="104.5" r="2.0" fill="white"/>
+    <ellipse cx="113" cy="105" rx="7.5" ry="8.5" fill="white"/>
+    <circle cx="114.5" cy="106.5" r="5.5" fill="#1A0A02"/>
+    <circle cx="116.2" cy="104.5" r="2.0" fill="white"/>
+
+    <!-- Raised eyebrows (surprised/curious) -->
+    <path d="M80 94 Q87 89 94 92" fill="none" stroke="#2C1A0E" stroke-width="3" stroke-linecap="round"/>
+    <path d="M106 92 Q113 89 120 94" fill="none" stroke="#2C1A0E" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- O-shaped mouth (amazed) -->
+    <ellipse cx="100" cy="120.5" rx="5" ry="4.5" fill="#8B4A2A"/>
+    <ellipse cx="100" cy="120" rx="3" ry="2.5" fill="#5A2A10"/>
+
+    <!-- Left arm – relaxed at side -->
+    <path d="M74 148 L56 167 Q54 170 57 172 L61 173 Q64 174 66 171 L83 152 Z" fill="#2A5566"/>
+    <ellipse cx="57" cy="172" rx="7.5" ry="7" fill="#C9905A"/>
+
+    <!-- Right arm – extended, holds phone -->
+    <path d="M126 148 L148 160 Q151 162 150 165 L148 169 Q146 171 143 170 L120 156 Z" fill="#2A5566"/>
+    <ellipse cx="150" cy="165" rx="7.5" ry="7" fill="#C9905A"/>
+
+    <!-- Phone in right hand -->
+    <rect x="143" y="158" width="22" height="33" rx="3" fill="#10101E"/>
+    <rect x="145" y="160" width="18" height="27" rx="2" fill="#1A3E7A"/>
+    <!-- Map-pin icon on screen -->
+    <circle cx="154" cy="170" r="5.5" fill="none" stroke="#F5C518" stroke-width="2"/>
+    <circle cx="154" cy="170" r="2" fill="#F5C518"/>
+    <line x1="154" y1="175.5" x2="154" y2="182" stroke="#F5C518" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- Floating question mark (upper-right) -->
+    <path d="M142 66 Q142 57 150 57 Q158 57 158 64 Q158 71 151 73 L151 80"
+          fill="none" stroke="#F5C518" stroke-width="5" stroke-linecap="round" opacity="0.78"/>
+    <circle cx="151" cy="87" r="4" fill="#F5C518" opacity="0.78"/>
+
+  </g>
+
+  <!-- Gold ring – thin, subdued for level 1 -->
+  <circle cx="100" cy="100" r="97" fill="none" stroke="#F5C518" stroke-width="2.5" opacity="0.38"/>
+</svg>

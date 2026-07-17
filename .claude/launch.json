@@ -2,21 +2,27 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--workspace=apps/web"],
+      "port": 3000
+    },
+    {
       "name": "api",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "start:prod", "--workspace=api"],
+      "runtimeArgs": ["run", "start:dev", "--workspace=apps/api"],
       "port": 4000
     },
     {
-      "name": "web",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--workspace=web"],
-      "port": 3000
+      "name": "mobile-web",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["-y", "serve", "apps/mobile/build/web", "-p", "5001", "--no-clipboard"],
+      "port": 5001
     },
     {
       "name": "admin",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--workspace=admin"],
+      "runtimeArgs": ["run", "dev", "--workspace=apps/admin"],
       "port": 3001
     }
   ]

@@ -28,7 +28,15 @@ export default async function VenuesPage({ searchParams }: Props) {
       ) : (
         <>
           <div className="mb-8 h-96 overflow-hidden rounded-xl border border-border">
-            <VenueMap markers={venues} />
+            <VenueMap markers={venues.map(v => ({
+              id: v.id,
+              name: v.name,
+              lat: v.lat,
+              lng: v.lng,
+              categoryName: v.category,
+              coverPhoto: v.photos[0] ?? null,
+              rating: v.topRating !== null ? { overall: v.topRating, reviewCount: v.reviewCount } : undefined,
+            }))} />
           </div>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {venues.map((venue) => (

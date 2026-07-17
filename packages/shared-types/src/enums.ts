@@ -1,26 +1,39 @@
-export const UserRole = {
-  PUBLIC: "PUBLIC",
-  REVIEWER: "REVIEWER",
-  ADMIN: "ADMIN",
+export const AccountRole = {
+  USER: 'USER',
+  CREATOR: 'CREATOR',
+  ADMINISTRATOR: 'ADMINISTRATOR',
 } as const;
-export type UserRole = (typeof UserRole)[keyof typeof UserRole];
+export type AccountRole = (typeof AccountRole)[keyof typeof AccountRole];
 
-export const RatingDimension = {
-  ATMOSPHERE: "ATMOSPHERE",
-  MUSIC: "MUSIC",
-  DRINKS: "DRINKS",
-  VALUE: "VALUE",
-  CROWD: "CROWD",
-  SERVICE: "SERVICE",
-  CLEANLINESS: "CLEANLINESS",
+export const VenueCategory = {
+  BAR: 'BAR',
+  CLUB: 'CLUB',
+  ROOFTOP: 'ROOFTOP',
+  LIVE_MUSIC: 'LIVE_MUSIC',
+  LOUNGE: 'LOUNGE',
+  OTHER: 'OTHER',
 } as const;
-export type RatingDimension = (typeof RatingDimension)[keyof typeof RatingDimension];
+export type VenueCategory = (typeof VenueCategory)[keyof typeof VenueCategory];
 
-export const REPUTATION_LEVELS = [
-  "Explorer",
-  "Regular",
-  "Night Owl",
-  "VIP Reviewer",
-  "Elite Reviewer",
-] as const;
-export type ReputationLevelName = (typeof REPUTATION_LEVELS)[number];
+export const PriceRange = {
+  BUDGET: 'BUDGET',
+  MODERATE: 'MODERATE',
+  UPSCALE: 'UPSCALE',
+  LUXURY: 'LUXURY',
+} as const;
+export type PriceRange = (typeof PriceRange)[keyof typeof PriceRange];
+
+export const SharePlatform = {
+  INSTAGRAM: 'INSTAGRAM',
+  TIKTOK: 'TIKTOK',
+  LINK: 'LINK',
+  COPY: 'COPY',
+} as const;
+export type SharePlatform = (typeof SharePlatform)[keyof typeof SharePlatform];
+
+export const PRICE_RANGE_SYMBOLS: Record<string, string> = {
+  BUDGET: '$',
+  MODERATE: '$$',
+  UPSCALE: '$$$',
+  LUXURY: '$$$$',
+};

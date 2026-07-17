@@ -9,392 +9,156 @@ datasource db {
 
 // ---------- Enums ----------
 
-enum UserRole {
-  PUBLIC
-  REVIEWER
-  ADMIN
-}
-
-enum InviteStatus {
-  PENDING
-  USED
-  EXPIRED
-  REVOKED
-}
-
-enum VenueStatus {
-  ACTIVE
-  PENDING
-  CLOSED
-}
-
-enum VenueSource {
-  SEED
-  COMMUNITY
-}
-
-enum ReviewStatus {
-  PUBLISHED
-  FLAGGED
-  REMOVED
-}
-
-enum MediaType {
-  PHOTO
-  VIDEO
-}
-
-enum RatingDimension {
-  ATMOSPHERE
-  MUSIC
-  DRINKS
-  VALUE
-  CROWD
-  SERVICE
-  CLEANLINESS
-}
-
-enum ReputationEventType {
-  HELPFUL_VOTE
-  VERIFIED_VISIT
-  INVITE_CONVERTED
-  REVIEW_PUBLISHED
-  FLAGGED_CONTENT
-  ACCOUNT_BANNED
-}
-
-enum ModerationTargetType {
-  REVIEW
-  COMMENT
-  MEDIA
+enum AccountRole {
   USER
-  VENUE
+  CREATOR
+  ADMINISTRATOR
 }
 
-enum ModerationStatus {
-  OPEN
-  RESOLVED
-  DISMISSED
+enum VenueCategory {
+  BAR
+  CLUB
+  ROOFTOP
+  LIVE_MUSIC
+  LOUNGE
+  OTHER
+}
+
+enum PriceRange {
+  BUDGET    // $
+  MODERATE  // $$
+  UPSCALE   // $$$
+  LUXURY    // $$$$
+}
+
+enum SharePlatform {
+  INSTAGRAM
+  TIKTOK
+  LINK
+  COPY
 }
 
 // ---------- Core ----------
 
-// Multi-city from day one so expansion beyond Bangkok never requires a schema redesign.
-model City {
-  id        String   @id @default(cuid())
-  name      String
-  country   String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-
-  users  User[]
-  venues Venue[]
-
-  @@map("cities")
-}
-
-model User {
-  id               String    @id @default(cuid())
-  phoneHash        String    @unique // never store raw phone numbers
-  displayName      String
+model Account {
+  id               String      @id @default(uuid())
+  name             String
+  email            String      @unique
+  passwordHash     String
   avatarUrl        String?
-  bio              String?
-  role             UserRole  @default(PUBLIC)
-  reputationLevel  Int       @default(0) // 0=Explorer .. 4=Elite Reviewer
-  reputationScore  Int       @default(0)
-  cityId           String?
-  invitedById      String?
-  remainingInvites Int       @default(0) // 0 until promoted to reviewer, then set to 5
-  bannedAt         DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  role             AccountRole @default(CREATOR)
+  active           Boolean     @default(true)
+  points           Int         @default(0)
+  createdByAdminId String?
+  lastLoginAt      DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
-  // Materialized path/depth in the invite tree (e.g. "/admin/alice/bob/"), set once
-  // at creation from the inviter's own path. Makes "top inviters" and subtree/chain
-  // queries simple prefix-indexed lookups instead of recursive CTEs at scale.
-  invitePath  String @default("/")
-  inviteDepth Int    @default(0)
+  // SQL Server requires NoAction on self-referential relations to avoid cycle errors
+  createdBy       Account?  @relation("CreatedBy", fields: [createdByAdminId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdAccounts Account[] @relation("CreatedBy")
 
-  city       City?   @relation(fields: [cityId], references: [id])
-  invitedBy  User?   @relation("UserInvitedBy", fields: [invitedById], references: [id])
-  invitees   User[]  @relation("UserInvitedBy")
-
-  invitesSent      Invite[]           @relation("InviteInviter")
-  invitesRedeemed  Invite[]           @relation("InviteInvitee")
+  createdVenues    Venue[]  @relation("VenueCreatedBy")
+  lastEditedVenues Venue[]  @relation("VenueLastEditedBy")
   reviews          Review[]
-  comments         Comment[]
-  likes            Like[]
-  checkins         Checkin[]
-  followedBy       Follow[]           @relation("Followee")
-  following        Follow[]           @relation("Follower")
-  reputationEvents ReputationEvent[]
-  moderationFlagsFiled ModerationFlag[] @relation("FlagReporter")
+  createdInvites   Invite[] @relation("InviteCreatedBy")
+  ownedInvites     Invite[] @relation("InviteOwnedBy")
 
-  @@index([cityId])
-  @@index([invitePath])
-  @@map("users")
+  @@map("accounts")
 }
 
-model PhoneOtp {
-  id           String   @id @default(cuid())
-  phoneHash    String
-  codeHash     String
-  ipHash       String
-  attemptCount Int      @default(0)
-  expiresAt    DateTime
-  consumedAt   DateTime?
-  createdAt    DateTime @default(now())
+// ---------- Invites ----------
 
-  // Rate limiting relies on these two indexes: N requests per phone / per IP within a window.
-  @@index([phoneHash, createdAt])
-  @@index([ipHash, createdAt])
-  @@map("phone_otps")
-}
-
-// A single invite edge (inviter -> invitee). The tree-wide position/depth of each
-// user lives on User.invitePath / User.inviteDepth, not here - see the comment there.
 model Invite {
-  id         String       @id @default(cuid())
-  code       String       @unique
-  inviterId  String
-  inviteeId  String?
-  status     InviteStatus @default(PENDING)
-  expiresAt  DateTime
-  createdAt  DateTime     @default(now())
-  redeemedAt DateTime?
+  id               String    @id @default(uuid())
+  code             String    @unique
+  note             String?
+  expiresAt        DateTime?
+  usedAt           DateTime?
+  usedByAccountId  String?
+  createdByAdminId String?
+  ownedByAccountId String?
+  createdAt        DateTime  @default(now())
 
-  inviter User  @relation("InviteInviter", fields: [inviterId], references: [id])
-  invitee User? @relation("InviteInvitee", fields: [inviteeId], references: [id])
+  createdByAdmin  Account?  @relation("InviteCreatedBy", fields: [createdByAdminId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ownedByAccount  Account?  @relation("InviteOwnedBy", fields: [ownedByAccountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([inviterId])
   @@map("invites")
 }
 
 // ---------- Venues ----------
 
-model VenueCategory {
-  id     String  @id @default(cuid())
-  name   String  @unique
-  venues Venue[]
-
-  @@map("venue_categories")
-}
-
 model Venue {
-  id         String      @id @default(cuid())
-  cityId     String
-  categoryId String?
-  name       String
-  slug       String      @unique
-  description String?
-  address    String
-  lat        Float
-  lng        Float
-  priceRange Int? // 1-4, like $ .. $$$$
-  status     VenueStatus @default(ACTIVE)
-  source     VenueSource @default(SEED)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id             String        @id @default(uuid())
+  name           String
+  category       VenueCategory @default(OTHER)
+  address        String
+  lat            Float
+  lng            Float
+  city           String        @default("Bangkok")
+  coverCharge    Int?
+  musicGenres    Json          // ["House", "Techno"]
+  crowdTypes     Json          // ["Couples", "Mixed"]
+  priceRange     PriceRange?
+  hoursJson      Json?
+  photos         Json          // ["url1", "url2"]
+  googlePlaceId  String?       @unique
+  isPublished    Boolean       @default(false)
+  isClosed       Boolean       @default(false)
+  closedCheckedAt DateTime?
+  createdById    String
+  lastEditedById String
 
-  // Admin-curated content for phases with no reviewer-driven ratings yet
-  // (e.g. the discovery-only mobile app). Deliberately separate from the
-  // community rating system (Review/VenueRatingAggregate) rather than
-  // reusing it - conflating "an admin's opinion" with "the community's
-  // aggregate opinion" would misrepresent both once real reviews exist.
-  curatedRating Float?
-  curatedReview String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  city     City           @relation(fields: [cityId], references: [id])
-  category VenueCategory? @relation(fields: [categoryId], references: [id])
+  createdBy    Account  @relation("VenueCreatedBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  lastEditedBy Account  @relation("VenueLastEditedBy", fields: [lastEditedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reviews      Review[]
 
-  tags      VenueTag[]
-  reviews   Review[]
-  checkins  Checkin[]
-  ratingAggregates VenueRatingAggregate[]
-
-  // NOTE: a PostGIS `geography(Point,4326)` column + GiST index should be added via a
-  // raw SQL migration once a live Postgres/PostGIS instance is available, generated
-  // from lat/lng, to power "venues near me" queries efficiently at scale. lat/lng
-  // stay as the Prisma-managed source of truth; the geography column is derived.
-  @@index([cityId, status])
+  @@index([city, isPublished])
+  @@index([lat, lng])
   @@map("venues")
-}
-
-model Tag {
-  id       String     @id @default(cuid())
-  labelEn  String
-  labelTh  String
-  venues   VenueTag[]
-
-  @@map("tags")
-}
-
-model VenueTag {
-  venueId String
-  tagId   String
-
-  venue Venue @relation(fields: [venueId], references: [id])
-  tag   Tag   @relation(fields: [tagId], references: [id])
-
-  @@id([venueId, tagId])
-  @@map("venue_tags")
 }
 
 // ---------- Reviews ----------
 
 model Review {
-  id             String       @id @default(cuid())
-  venueId        String
-  userId         String
-  body           String? // max 500 chars, enforced at API layer
-  overallRating  Int // 1-5
-  verifiedVisit  Boolean      @default(false)
-  status         ReviewStatus @default(PUBLISHED)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id              String   @id @default(uuid())
+  venueId         String
+  accountId       String
+  rating          Int
+  textBody        String
+  media           Json     // [{ url: string, type: "photo" | "video" }]
+  tags            Json     // ["great-vibe", "loud"]
+  musicGenreNotes String?
+  priceLevelNotes String?
+  crowdNotes      String?
+  isPublished     Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  venue      Venue              @relation(fields: [venueId], references: [id])
-  user       User               @relation(fields: [userId], references: [id])
-  subratings ReviewSubrating[]
-  media      ReviewMedia[]
-  comments   Comment[]
-  likes      Like[]
+  venue       Venue        @relation(fields: [venueId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  account     Account      @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  shareEvents ShareEvent[]
 
-  @@index([venueId, status])
-  @@index([userId])
+  @@unique([accountId, venueId])
+  @@index([venueId, isPublished])
+  @@index([accountId])
   @@map("reviews")
 }
 
-// Separate table (not fixed columns) so a new rating dimension is a data change,
-// not a migration.
-model ReviewSubrating {
-  id        String          @id @default(cuid())
+// ---------- Viral loop tracking ----------
+
+model ShareEvent {
+  id        String        @id @default(uuid())
   reviewId  String
-  dimension RatingDimension
-  score     Int // 1-5
+  platform  SharePlatform
+  createdAt DateTime      @default(now())
 
-  review Review @relation(fields: [reviewId], references: [id])
-
-  @@unique([reviewId, dimension])
-  @@map("review_subratings")
-}
-
-model ReviewMedia {
-  id       String    @id @default(cuid())
-  reviewId String
-  type     MediaType
-  url      String
-  order    Int       @default(0)
-
-  review Review @relation(fields: [reviewId], references: [id])
+  review Review @relation(fields: [reviewId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([reviewId])
-  @@map("review_media")
-}
-
-// Precomputed per-venue, per-dimension aggregates, recalculated asynchronously
-// after each new/edited review so venue pages read from one small row, not
-// a scan+avg over all reviews.
-model VenueRatingAggregate {
-  venueId   String
-  dimension RatingDimension
-  avgScore  Float           @default(0)
-  count     Int             @default(0)
-  updatedAt DateTime        @updatedAt
-
-  venue Venue @relation(fields: [venueId], references: [id])
-
-  @@id([venueId, dimension])
-  @@map("venue_rating_aggregates")
-}
-
-// ---------- Social ----------
-
-model Follow {
-  followerId String
-  followeeId String
-  createdAt  DateTime @default(now())
-
-  follower User @relation("Follower", fields: [followerId], references: [id])
-  followee User @relation("Followee", fields: [followeeId], references: [id])
-
-  @@id([followerId, followeeId])
-  @@map("follows")
-}
-
-model Like {
-  userId    String
-  reviewId  String
-  createdAt DateTime @default(now())
-
-  user   User   @relation(fields: [userId], references: [id])
-  review Review @relation(fields: [reviewId], references: [id])
-
-  @@id([userId, reviewId])
-  @@map("likes")
-}
-
-model Comment {
-  id        String   @id @default(cuid())
-  reviewId  String
-  userId    String
-  body      String
-  createdAt DateTime @default(now())
-
-  review Review @relation(fields: [reviewId], references: [id])
-  user   User   @relation(fields: [userId], references: [id])
-
-  @@index([reviewId])
-  @@map("comments")
-}
-
-// GPS check-in used to derive `verifiedVisit` on a review submitted around the
-// same time and within ~100m of the venue. Distance validated server-side.
-model Checkin {
-  id         String   @id @default(cuid())
-  userId     String
-  venueId    String
-  lat        Float
-  lng        Float
-  distanceM  Float
-  createdAt  DateTime @default(now())
-
-  user  User  @relation(fields: [userId], references: [id])
-  venue Venue @relation(fields: [venueId], references: [id])
-
-  @@index([userId, venueId, createdAt])
-  @@map("checkins")
-}
-
-// ---------- Reputation & Moderation ----------
-
-model ReputationEvent {
-  id        String              @id @default(cuid())
-  userId    String
-  type      ReputationEventType
-  delta     Int
-  createdAt DateTime            @default(now())
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@index([userId, createdAt])
-  @@map("reputation_events")
-}
-
-model ModerationFlag {
-  id           String                @id @default(cuid())
-  targetType   ModerationTargetType
-  targetId     String
-  reason       String
-  status       ModerationStatus      @default(OPEN)
-  reportedById String?
-  resolvedById String?
-  resolvedAt   DateTime?
-  createdAt    DateTime              @default(now())
-
-  reportedBy User? @relation("FlagReporter", fields: [reportedById], references: [id])
-
-  @@index([targetType, targetId])
-  @@index([status])
-  @@map("moderation_flags")
+  @@index([platform, createdAt])
+  @@map("share_events")
 }

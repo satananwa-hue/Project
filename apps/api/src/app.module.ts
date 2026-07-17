@@ -6,9 +6,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
-import { InvitesModule } from './invites/invites.module';
 import { VenuesModule } from './venues/venues.module';
+import { ReviewsModule } from './reviews/reviews.module';
 import { AdminModule } from './admin/admin.module';
+import { InvitesModule } from './invites/invites.module';
 
 @Module({
   imports: [
@@ -16,9 +17,10 @@ import { AdminModule } from './admin/admin.module';
     ThrottlerModule.forRoot({ throttlers: [{ ttl: 60_000, limit: 100 }] }),
     PrismaModule,
     AuthModule,
-    InvitesModule,
     VenuesModule,
+    ReviewsModule,
     AdminModule,
+    InvitesModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

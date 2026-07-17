@@ -1,22 +1,20 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import {
-  LayerGroup,
-  LayersControl,
+  CircleMarker,
   MapContainer,
   Marker,
   Popup,
   TileLayer,
+  useMap,
 } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import Link from 'next/link';
 import 'leaflet/dist/leaflet.css';
+import type { VenueListItemDto } from '@chiwitrakmaochaaowelarakkhrai/shared-types';
 
-// Leaflet's default marker icon paths assume a plain file server, which breaks
-// under Next.js's bundler. `new URL(..., import.meta.url)` is the bundler-standard
-// way to reference a node_modules asset and get a real, working URL back
-// (a plain ES module default import of the .png only resolves to bundler
-// metadata for app-local assets, not third-party package assets).
 delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href,
@@ -25,83 +23,158 @@ L.Icon.Default.mergeOptions({
 });
 
 const BANGKOK_CENTER: [number, number] = [13.7563, 100.5018];
-const UNCATEGORIZED = 'Other';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api';
 
 export interface VenueMapMarker {
   id: string;
-  slug: string;
   name: string;
   lat: number;
   lng: number;
   categoryName?: string | null;
+  coverPhoto?: string | null;
   rating?: { overall: number; reviewCount: number };
 }
 
+function toMarker(v: VenueListItemDto): VenueMapMarker {
+  return {
+    id: v.id,
+    name: v.name,
+    lat: v.lat,
+    lng: v.lng,
+    categoryName: v.category,
+    coverPhoto: (v.photos as string[])[0] ?? null,
+    rating: v.topRating !== null
+      ? { overall: v.topRating, reviewCount: v.reviewCount }
+      : undefined,
+  };
+}
+
+// Recenter map when userPos changes
+function MapController({ pos }: { pos: [number, number] | null }) {
+  const map = useMap();
+  const didFly = useRef(false);
+  useEffect(() => {
+    if (pos && !didFly.current) {
+      didFly.current = true;
+      map.flyTo(pos, 14, { duration: 1 });
+    }
+  }, [pos, map]);
+  return null;
+}
+
 export function VenueMap({
-  markers,
+  markers: externalMarkers,
   center,
   zoom,
   showCenterPin = false,
 }: {
-  markers: VenueMapMarker[];
+  markers?: VenueMapMarker[];
   center?: [number, number];
   zoom?: number;
   showCenterPin?: boolean;
 }) {
-  const mapCenter: [number, number] =
-    center ?? (markers.length > 0 ? [markers[0].lat, markers[0].lng] : BANGKOK_CENTER);
-  const mapZoom = zoom ?? (markers.length > 0 ? 13 : 11);
+  // ── Geolocation mode (home page — no external markers) ──────────────────
+  const geoMode = externalMarkers === undefined;
+  const [userPos, setUserPos] = useState<[number, number] | null>(null);
+  const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'granted' | 'denied'>('idle');
+  const [nearbyMarkers, setNearbyMarkers] = useState<VenueMapMarker[]>([]);
 
-  const byCategory = new Map<string, VenueMapMarker[]>();
-  for (const marker of markers) {
-    const category = marker.categoryName ?? UNCATEGORIZED;
-    const list = byCategory.get(category) ?? [];
-    list.push(marker);
-    byCategory.set(category, list);
-  }
-  const categories = [...byCategory.keys()].sort();
+  const loadAllBangkok = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/venues?pageSize=5000`, { signal: AbortSignal.timeout(10000) });
+      const data = (await res.json()) as { items: VenueListItemDto[] };
+      setNearbyMarkers((data.items ?? []).map(toMarker));
+    } catch {
+      setNearbyMarkers([]);
+    }
+  };
 
+  useEffect(() => {
+    if (!geoMode) return;
+    if (!navigator.geolocation) { setGeoStatus('denied'); loadAllBangkok(); return; }
+
+    setGeoStatus('loading');
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setUserPos([lat, lng]);
+        setGeoStatus('granted');
+
+        try {
+          const res = await fetch(
+            `${API_BASE}/venues?lat=${lat}&lng=${lng}&radiusM=3000&pageSize=300`,
+            { signal: AbortSignal.timeout(8000) },
+          );
+          const data = (await res.json()) as { items: VenueListItemDto[] };
+          setNearbyMarkers((data.items ?? []).map(toMarker));
+        } catch {
+          setNearbyMarkers([]);
+        }
+      },
+      () => { setGeoStatus('denied'); loadAllBangkok(); },
+      { timeout: 10000, maximumAge: 60000 },
+    );
+  }, [geoMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Resolved values ──────────────────────────────────────────────────────
+  const markers = geoMode ? nearbyMarkers : externalMarkers!;
+  const mapCenter: [number, number] = center ?? BANGKOK_CENTER;
+  const mapZoom = zoom ?? 11;
   const showPin = showCenterPin && markers.length > 0;
 
   return (
     <div className="relative h-full w-full">
+      {/* Status banner (geo mode only) */}
+      {geoMode && geoStatus === 'loading' && (
+        <div className="pointer-events-none absolute inset-x-0 top-14 z-[1000] flex justify-center">
+          <span className="rounded-full bg-black/60 px-4 py-1 text-sm text-white backdrop-blur-sm">
+            กำลังหาตำแหน่งของคุณ…
+          </span>
+        </div>
+      )}
+      {geoMode && geoStatus === 'denied' && (
+        <div className="pointer-events-none absolute inset-x-0 top-14 z-[1000] flex justify-center">
+          <span className="rounded-full bg-black/60 px-4 py-1 text-sm text-white backdrop-blur-sm">
+            ไม่ได้รับอนุญาตใช้ตำแหน่ง — แสดง Bangkok ทั้งหมด
+          </span>
+        </div>
+      )}
+      {geoMode && geoStatus === 'granted' && nearbyMarkers.length === 0 && (
+        <div className="pointer-events-none absolute inset-x-0 top-14 z-[1000] flex justify-center">
+          <span className="rounded-full bg-black/60 px-4 py-1 text-sm text-white backdrop-blur-sm">
+            ไม่พบร้านในรัศมี 3 กม.
+          </span>
+        </div>
+      )}
+
       <MapContainer
         center={mapCenter}
         zoom={mapZoom}
         scrollWheelZoom={false}
         className="h-full w-full"
       >
-      {/*
-        CARTO's free dark basemap - no API key/billing account needed, unlike
-        Google Maps. Matches the app's dark-mode-first branding instead of the
-        default light OpenStreetMap look.
-      */}
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        subdomains="abcd"
-      />
-      {/*
-        Leaflet's layers-control pattern: one toggleable overlay (LayerGroup)
-        per venue category. Only worth showing when there's actually more than
-        one category to toggle between - a single-venue detail map just renders
-        its markers directly.
-      */}
-      {categories.length > 1 ? (
-        <LayersControl position="topright">
-          {categories.map((category) => (
-            <LayersControl.Overlay key={category} checked name={category}>
-              <LayerGroup>
-                {byCategory.get(category)!.map((marker) => (
-                  <VenueMarker key={marker.id} marker={marker} />
-                ))}
-              </LayerGroup>
-            </LayersControl.Overlay>
+        <TileLayer
+          attribution='&copy; <a href="https://www.geoapify.com/">Geoapify</a> | &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://maps.geoapify.com/v1/tile/dark-matter/{z}/{x}/{y}.png?apiKey=f3199d5697904c388c2af578a23e2844"
+        />
+
+        {geoMode && <MapController pos={userPos} />}
+
+        {/* User location dot */}
+        {userPos && (
+          <CircleMarker
+            center={userPos}
+            radius={8}
+            pathOptions={{ color: '#fff', fillColor: '#3b82f6', fillOpacity: 1, weight: 2 }}
+          />
+        )}
+
+        <MarkerClusterGroup chunkedLoading>
+          {markers.map((marker) => (
+            <VenueMarker key={marker.id} marker={marker} />
           ))}
-        </LayersControl>
-      ) : (
-        markers.map((marker) => <VenueMarker key={marker.id} marker={marker} />)
-      )}
+        </MarkerClusterGroup>
       </MapContainer>
 
       {showPin ? (
@@ -120,8 +193,16 @@ function VenueMarker({ marker }: { marker: VenueMapMarker }) {
   return (
     <Marker position={[marker.lat, marker.lng]}>
       <Popup>
-        <div className="min-w-[10rem]">
-          <Link href={`/venues/${marker.slug}`} className="font-medium">
+        <div className="w-40">
+          {marker.coverPhoto && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={marker.coverPhoto}
+              alt={marker.name}
+              className="mb-2 h-20 w-full rounded object-cover"
+            />
+          )}
+          <Link href={`/venues/${marker.id}`} className="font-medium">
             {marker.name}
           </Link>
           {marker.categoryName && <p className="text-xs text-muted">{marker.categoryName}</p>}
@@ -140,7 +221,7 @@ function VenueMarker({ marker }: { marker: VenueMapMarker }) {
               )}
             </p>
           )}
-          <Link href={`/venues/${marker.slug}`} className="mt-1 inline-block text-sm text-accent">
+          <Link href={`/venues/${marker.id}`} className="mt-1 inline-block text-sm text-accent">
             View venue →
           </Link>
         </div>

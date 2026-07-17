@@ -1,35 +1,64 @@
-import { z } from "zod";
+import { z } from 'zod';
+import type { AccountRole } from './enums';
 
-// E.164 format, e.g. +66812345678
-const phoneRegex = /^\+[1-9]\d{7,14}$/;
-
-export const requestOtpSchema = z.object({
-  phone: z.string().regex(phoneRegex, "Phone number must be in E.164 format, e.g. +66812345678"),
+export const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
 });
-export type RequestOtpInput = z.infer<typeof requestOtpSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
 
-export const verifyOtpSchema = z.object({
-  phone: z.string().regex(phoneRegex),
-  code: z.string().length(6),
-  inviteCode: z.string().optional(),
+export const signupSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  password: z.string().min(8).max(100),
+  inviteCode: z.string().min(1),
 });
-export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>;
+export type SignupInput = z.infer<typeof signupSchema>;
+
+export const createAccountSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  password: z.string().min(8).max(100),
+  role: z.enum(['CREATOR', 'ADMINISTRATOR']).default('CREATOR'),
+  avatarUrl: z.string().url().optional(),
+});
+export type CreateAccountInput = z.infer<typeof createAccountSchema>;
+
+export const updateAccountSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  email: z.string().email().optional(),
+  avatarUrl: z.string().url().nullable().optional(),
+  role: z.enum(['CREATOR', 'ADMINISTRATOR']).optional(),
+  active: z.boolean().optional(),
+});
+export type UpdateAccountInput = z.infer<typeof updateAccountSchema>;
+
+export const resetPasswordSchema = z.object({
+  newPassword: z.string().min(8).max(100),
+});
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
+export interface AccountDto {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+  role: AccountRole;
+  active: boolean;
+  points: number;
+  createdAt: string;
+  lastLoginAt: string | null;
+  createdBy: { id: string; name: string } | null;
+}
 
 export interface AuthSession {
   accessToken: string;
-  user: {
+  account: {
     id: string;
-    displayName: string;
-    role: string;
+    name: string;
+    email: string;
+    avatarUrl: string | null;
+    role: AccountRole;
+    points: number;
   };
-}
-
-export interface UserProfile {
-  id: string;
-  displayName: string;
-  avatarUrl: string | null;
-  role: string;
-  reputationLevel: number;
-  reputationScore: number;
-  remainingInvites: number;
 }

@@ -7,7 +7,7 @@ import { loginAction } from "./actions";
 export default function LoginPage() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [username, setUsername] = useState("admin");
+  const [email, setEmail] = useState("admin@nightcheck.dev");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -15,7 +15,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      const result = await loginAction(username, password);
+      const result = await loginAction(email, password);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -29,14 +29,16 @@ export default function LoginPage() {
     <div className="mx-auto max-w-sm px-6 py-24">
       <h1 className="text-2xl font-semibold tracking-tight">Admin sign in</h1>
       <p className="mt-2 text-sm text-neutral-400">
-        Restricted to the platform&apos;s content administrators.
+        Restricted to the platform&apos;s administrators.
       </p>
       <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
         <label className="flex flex-col gap-1 text-sm">
-          Username
+          Email
           <input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
             className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2"
           />
         </label>
@@ -46,6 +48,7 @@ export default function LoginPage() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
             className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2"
           />
         </label>

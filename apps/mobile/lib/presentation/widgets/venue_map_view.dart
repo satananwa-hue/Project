@@ -6,17 +6,19 @@ import 'package:mobile/domain/entities/venue_summary.dart';
 
 const bangkokCenter = LatLng(13.7563, 100.5018);
 
-/// CARTO's free dark basemap - no API key/billing account needed, unlike
-/// Google Maps, and matches the app's dark theme. Same tile source the web
-/// app uses (apps/web/src/components/venue-map.tsx).
-const _darkTileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-const _darkTileSubdomains = ['a', 'b', 'c', 'd'];
+const _geoapifyKey = String.fromEnvironment(
+  'GEOAPIFY_KEY',
+  defaultValue: 'REPLACE_WITH_YOUR_GEOAPIFY_KEY',
+);
+const _darkTileUrl =
+    'https://maps.geoapify.com/v1/tile/dark-matter/{z}/{x}/{y}.png?apiKey=$_geoapifyKey';
 
-class VenueMapView extends StatelessWidget {
+class VenueMapView extends StatefulWidget {
   final List<VenueSummary> venues;
   final void Function(VenueSummary venue)? onMarkerTap;
   final MapController? controller;
   final LatLng? center;
+  final LatLng? userPosition;
   final double zoom;
 
   const VenueMapView({
@@ -25,37 +27,79 @@ class VenueMapView extends StatelessWidget {
     this.onMarkerTap,
     this.controller,
     this.center,
-    this.zoom = 13,
+    this.userPosition,
+    this.zoom = 11,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final initialCenter = center ?? (venues.isNotEmpty
-        ? LatLng(venues.first.lat, venues.first.lng)
-        : bangkokCenter);
+  State<VenueMapView> createState() => _VenueMapViewState();
+}
 
-    return FlutterMap(
-      mapController: controller,
-      options: MapOptions(initialCenter: initialCenter, initialZoom: zoom),
+class _VenueMapViewState extends State<VenueMapView> {
+  late final MapController _ctrl;
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.controller != null) {
+      _ctrl = widget.controller!;
+    } else {
+      _ctrl = MapController();
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController) _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final initialCenter = widget.center ?? widget.userPosition ?? bangkokCenter;
+
+    return Stack(
       children: [
-        TileLayer(
-          urlTemplate: _darkTileUrl,
-          subdomains: _darkTileSubdomains,
-          userAgentPackageName: 'com.chiwitrakmaochaaowelarakkhrai.mobile',
+        FlutterMap(
+          mapController: _ctrl,
+          options: MapOptions(initialCenter: initialCenter, initialZoom: widget.zoom, minZoom: 3, maxZoom: 17),
+          children: [
+            TileLayer(
+              urlTemplate: _darkTileUrl,
+              userAgentPackageName: 'com.nightcheck.mobile',
+            ),
+            MarkerLayer(
+              markers: [
+                if (widget.userPosition != null)
+                  Marker(
+                    point: widget.userPosition!,
+                    width: 20,
+                    height: 20,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF3B82F6),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2.5),
+                        boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 4)],
+                      ),
+                    ),
+                  ),
+                ...widget.venues.map((venue) => Marker(
+                      point: LatLng(venue.lat, venue.lng),
+                      width: 36,
+                      height: 36,
+                      child: GestureDetector(
+                        onTap: widget.onMarkerTap == null ? null : () => widget.onMarkerTap!(venue),
+                        child: const Icon(Icons.location_on, color: kAccentColor, size: 36),
+                      ),
+                    )),
+              ],
+            ),
+          ],
         ),
-        MarkerLayer(
-          markers: venues.map((venue) {
-            return Marker(
-              point: LatLng(venue.lat, venue.lng),
-              width: 36,
-              height: 36,
-              child: GestureDetector(
-                onTap: onMarkerTap == null ? null : () => onMarkerTap!(venue),
-                child: const Icon(Icons.location_on, color: kAccentColor, size: 36),
-              ),
-            );
-          }).toList(),
-        ),
+
       ],
     );
   }

@@ -5,16 +5,9 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  Req,
   UseGuards,
-  UsePipes,
 } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
-import type { Request } from 'express';
-import {
-  requestOtpSchema,
-  verifyOtpSchema,
-} from '@chiwitrakmaochaaowelarakkhrai/shared-types';
+import { loginSchema, signupSchema } from '@chiwitrakmaochaaowelarakkhrai/shared-types';
 import { AuthService } from './auth.service';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -25,26 +18,21 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('otp/request')
+  @Post('login')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 3, ttl: 60_000 } })
-  @UsePipes(new ZodValidationPipe(requestOtpSchema))
-  async request(@Body() body: { phone: string }, @Req() req: Request) {
-    return this.authService.requestOtp(body.phone, req.ip ?? 'unknown');
+  login(@Body(new ZodValidationPipe(loginSchema)) body: { email: string; password: string }) {
+    return this.authService.login(body.email, body.password);
   }
 
-  @Post('otp/verify')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  @UsePipes(new ZodValidationPipe(verifyOtpSchema))
-  async verify(
-    @Body() body: { phone: string; code: string; inviteCode?: string },
-  ) {
-    return this.authService.verifyOtp(body.phone, body.code, body.inviteCode);
+  @Post('signup')
+  @HttpCode(HttpStatus.CREATED)
+  signup(@Body(new ZodValidationPipe(signupSchema)) body: { name: string; email: string; password: string; inviteCode: string }) {
+    return this.authService.signup(body);
   }
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  async me(@CurrentUser() user: JwtPayload) {
+  me(@CurrentUser() user: JwtPayload) {
     return this.authService.getProfile(user.sub);
   }
 }

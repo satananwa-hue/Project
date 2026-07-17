@@ -1,35 +1,47 @@
-import 'rating_summary.dart';
+const _priceRangeSymbols = {
+  'BUDGET': '\$',
+  'MODERATE': '\$\$',
+  'UPSCALE': '\$\$\$',
+  'LUXURY': '\$\$\$\$',
+};
 
 class VenueSummary {
   final String id;
-  final String slug;
   final String name;
-  final String? categoryName;
+  final String category;
+  final String address;
   final double lat;
   final double lng;
-  final int? priceRange;
+  final String city;
+  final int? coverCharge;
+  final List<String> musicGenres;
+  final List<String> crowdTypes;
+  final String? priceRange;
+  final List<String> photos;
+  final bool isPublished;
+  final double? topRating;
+  final int reviewCount;
   final double? distanceM;
-  final RatingSummary rating;
-  final String? coverPhotoUrl;
-
-  /// Admin-curated rating, distinct from [rating] (the reviewer community's
-  /// aggregate). Phase 1 has no reviewer accounts at all, so this is the only
-  /// rating this app can ever show - see [displayRating].
-  final double? curatedRating;
 
   const VenueSummary({
     required this.id,
-    required this.slug,
     required this.name,
-    required this.categoryName,
+    required this.category,
+    required this.address,
     required this.lat,
     required this.lng,
-    required this.priceRange,
-    required this.distanceM,
-    required this.rating,
-    required this.coverPhotoUrl,
-    required this.curatedRating,
+    required this.city,
+    this.coverCharge,
+    required this.musicGenres,
+    required this.crowdTypes,
+    this.priceRange,
+    required this.photos,
+    required this.isPublished,
+    this.topRating,
+    required this.reviewCount,
+    this.distanceM,
   });
 
-  double? get displayRating => rating.reviewCount > 0 ? rating.overall : curatedRating;
+  String? get priceRangeSymbol => priceRange != null ? _priceRangeSymbols[priceRange] : null;
+  String? get coverPhoto => photos.isNotEmpty ? photos.first : null;
 }

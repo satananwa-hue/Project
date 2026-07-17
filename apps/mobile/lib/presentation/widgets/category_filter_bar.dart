@@ -3,41 +3,44 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/theme/app_theme.dart';
 import 'package:mobile/presentation/providers/venues_providers.dart';
 
+const _categories = [
+  ('BAR', 'Bar'),
+  ('CLUB', 'Club'),
+  ('ROOFTOP', 'Rooftop'),
+  ('LIVE_MUSIC', 'Live Music'),
+  ('LOUNGE', 'Lounge'),
+  ('OTHER', 'Other'),
+];
+
 class CategoryFilterBar extends ConsumerWidget {
   const CategoryFilterBar({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final categoriesAsync = ref.watch(categoriesProvider);
-    final selected = ref.watch(selectedCategoryIdProvider);
+    final selected = ref.watch(selectedCategoryProvider);
 
-    return categoriesAsync.when(
-      data: (categories) => SizedBox(
-        height: 40,
-        child: ListView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          children: [
+    return SizedBox(
+      height: 40,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        children: [
+          _FilterChip(
+            label: 'All',
+            selected: selected == null,
+            onSelected: () => ref.read(selectedCategoryProvider.notifier).state = null,
+          ),
+          const SizedBox(width: 8),
+          for (final (value, label) in _categories) ...[
             _FilterChip(
-              label: 'All',
-              selected: selected == null,
-              onSelected: () => ref.read(selectedCategoryIdProvider.notifier).state = null,
+              label: label,
+              selected: selected == value,
+              onSelected: () => ref.read(selectedCategoryProvider.notifier).state = value,
             ),
             const SizedBox(width: 8),
-            for (final category in categories) ...[
-              _FilterChip(
-                label: category.name,
-                selected: selected == category.id,
-                onSelected: () =>
-                    ref.read(selectedCategoryIdProvider.notifier).state = category.id,
-              ),
-              const SizedBox(width: 8),
-            ],
           ],
-        ),
+        ],
       ),
-      loading: () => const SizedBox(height: 40),
-      error: (_, _) => const SizedBox(height: 40),
     );
   }
 }

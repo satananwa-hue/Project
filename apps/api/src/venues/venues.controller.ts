@@ -1,27 +1,32 @@
-import { Controller, Get, Param, Query, UsePipes } from '@nestjs/common';
-import { venueSearchSchema } from '@chiwitrakmaochaaowelarakkhrai/shared-types';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { createVenueSchema, venueSearchSchema } from '@chiwitrakmaochaaowelarakkhrai/shared-types';
 import { VenuesService } from './venues.service';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { JwtPayload } from '../common/guards/jwt-auth.guard';
 
 @Controller('venues')
 export class VenuesController {
   constructor(private readonly venuesService: VenuesService) {}
 
   @Get()
-  @UsePipes(new ZodValidationPipe(venueSearchSchema))
-  search(@Query() query: ReturnType<typeof venueSearchSchema.parse>) {
+  search(@Query(new ZodValidationPipe(venueSearchSchema)) query: ReturnType<typeof venueSearchSchema.parse>) {
     return this.venuesService.search(query);
   }
 
-  // Must be registered before ':slug' - otherwise NestJS would match
-  // "categories" as a slug value and this route would never be reached.
-  @Get('categories')
-  listCategories() {
-    return this.venuesService.listCategories();
+  @Get(':id')
+  getById(@Param('id') id: string) {
+    return this.venuesService.getById(id);
   }
 
-  @Get(':slug')
-  getBySlug(@Param('slug') slug: string) {
-    return this.venuesService.getBySlug(slug);
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  suggestVenue(
+    @Body(new ZodValidationPipe(createVenueSchema)) body: ReturnType<typeof createVenueSchema.parse>,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.venuesService.suggestVenue(body, user.sub);
   }
 }

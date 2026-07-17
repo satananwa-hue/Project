@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:mobile/core/services/location_service.dart';
 import 'package:mobile/data/datasources/venues_remote_data_source.dart';
 import 'package:mobile/data/repositories/venues_repository_impl.dart';
-import 'package:mobile/domain/entities/venue_category.dart';
 import 'package:mobile/domain/entities/venue_detail.dart';
 import 'package:mobile/domain/entities/venue_summary.dart';
 import 'package:mobile/domain/repositories/venues_repository.dart';
@@ -22,31 +21,47 @@ final venuesRepositoryProvider = Provider<VenuesRepository>((ref) {
 
 final locationServiceProvider = Provider<LocationService>((ref) => LocationService());
 
-/// Set only after the user taps "Near me" - we never prompt for location on
-/// launch, only on explicit request (see DiscoveryScreen's FAB).
-final userPositionProvider = StateProvider<Position?>((ref) => null);
-
-final categoriesProvider = FutureProvider<List<VenueCategory>>((ref) {
-  return ref.watch(venuesRepositoryProvider).listCategories();
+/// Auto-requested on first build — resolves to null if permission denied.
+final autoLocationProvider = FutureProvider<Position?>((ref) {
+  return ref.read(locationServiceProvider).getCurrentPosition();
 });
 
-/// null means "All categories".
-final selectedCategoryIdProvider = StateProvider<String?>((ref) => null);
+/// Overrides autoLocation when user taps the "re-center" FAB.
+final userPositionProvider = StateProvider<Position?>((ref) => null);
+
+/// null = All categories.
+final selectedCategoryProvider = StateProvider<String?>((ref) => null);
+
+/// null = Any music genre.
+final selectedMusicGenreProvider = StateProvider<String?>((ref) => null);
+
+/// null = Any crowd type.
+final selectedCrowdTypeProvider = StateProvider<String?>((ref) => null);
 
 final searchQueryProvider = StateProvider<String>((ref) => '');
 
-final venuesSearchProvider = FutureProvider.autoDispose<List<VenueSummary>>((ref) {
-  final categoryId = ref.watch(selectedCategoryIdProvider);
+final venuesSearchProvider = FutureProvider.autoDispose<List<VenueSummary>>((ref) async {
+  final category = ref.watch(selectedCategoryProvider);
+  final musicGenre = ref.watch(selectedMusicGenreProvider);
+  final crowdType = ref.watch(selectedCrowdTypeProvider);
   final query = ref.watch(searchQueryProvider);
-  final position = ref.watch(userPositionProvider);
+
+  // Manual re-center overrides auto-detected position
+  final manualPos = ref.watch(userPositionProvider);
+  final autoPos = ref.watch(autoLocationProvider).asData?.value;
+  final position = manualPos ?? autoPos;
+
   return ref.watch(venuesRepositoryProvider).search(
-        categoryId: categoryId,
-        query: query,
-        lat: position?.latitude,
-        lng: position?.longitude,
-      );
+    category: category,
+    musicGenre: musicGenre,
+    crowdType: crowdType,
+    query: query,
+    lat: position?.latitude,
+    lng: position?.longitude,
+    radiusM: 3000,
+  );
 });
 
-final venueDetailProvider = FutureProvider.family<VenueDetail, String>((ref, slug) {
-  return ref.watch(venuesRepositoryProvider).getBySlug(slug);
+final venueDetailProvider = FutureProvider.autoDispose.family<VenueDetail, String>((ref, id) {
+  return ref.watch(venuesRepositoryProvider).getById(id);
 });

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getVenueBySlug } from "@/lib/api";
 import { VenueMap } from "@/components/venue-map-loader";
@@ -14,8 +14,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const title = `${venue.name} — Reviews & Ratings`;
   const description =
-    venue.description ??
-    `${venue.rating.reviewCount} reviews from ChiWitRakMaoChaAoWelaRakKhrai's trusted reviewer community. Rated ${venue.rating.overall.toFixed(1)}/5.`;
+    venue.reviewCount > 0 && venue.topRating !== null
+      ? `${venue.reviewCount} reviews. Rated ${venue.topRating.toFixed(1)}/5.`
+      : `${venue.name} — ${venue.category} in ${venue.city}.`;
 
   return {
     title,
@@ -23,20 +24,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title,
       description,
-      images: venue.coverPhotoUrl ? [venue.coverPhotoUrl] : [],
+      images: venue.photos[0] ? [venue.photos[0]] : [],
     },
   };
 }
-
-const DIMENSION_LABELS: Record<string, string> = {
-  ATMOSPHERE: "Atmosphere",
-  MUSIC: "Music",
-  DRINKS: "Drinks",
-  VALUE: "Value",
-  CROWD: "Crowd",
-  SERVICE: "Service",
-  CLEANLINESS: "Cleanliness",
-};
 
 export default async function VenuePage({ params }: Props) {
   const { slug } = await params;
@@ -50,14 +41,16 @@ export default async function VenuePage({ params }: Props) {
     address: venue.address,
     geo: { "@type": "GeoCoordinates", latitude: venue.lat, longitude: venue.lng },
     aggregateRating:
-      venue.rating.reviewCount > 0
+      venue.reviewCount > 0 && venue.topRating !== null
         ? {
             "@type": "AggregateRating",
-            ratingValue: venue.rating.overall,
-            reviewCount: venue.rating.reviewCount,
+            ratingValue: venue.topRating,
+            reviewCount: venue.reviewCount,
           }
         : undefined,
   };
+
+  const tags = [...venue.musicGenres, ...venue.crowdTypes];
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
@@ -66,41 +59,43 @@ export default async function VenuePage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <p className="text-sm text-muted">{venue.categoryName ?? "Nightlife venue"}</p>
+      <p className="text-sm text-muted">{venue.category}</p>
       <h1 className="mt-1 text-3xl font-semibold tracking-tight">{venue.name}</h1>
       <p className="mt-2 text-muted">{venue.address}</p>
 
       <div className="mt-6 flex items-center gap-4">
         <span className="text-2xl font-semibold">
-          {venue.rating.reviewCount > 0 ? venue.rating.overall.toFixed(1) : "New"}
+          {venue.reviewCount > 0 && venue.topRating !== null
+            ? venue.topRating.toFixed(1)
+            : "New"}
         </span>
         <span className="text-muted">
-          {venue.rating.reviewCount} {venue.rating.reviewCount === 1 ? "review" : "reviews"}
+          {venue.reviewCount} {venue.reviewCount === 1 ? "review" : "reviews"}
         </span>
       </div>
-
-      {venue.description && <p className="mt-6 leading-relaxed">{venue.description}</p>}
 
       <div className="mt-6 h-64 overflow-hidden rounded-xl border border-border">
         <VenueMap
           markers={[
             {
               id: venue.id,
-              slug: venue.slug,
               name: venue.name,
               lat: venue.lat,
               lng: venue.lng,
-              categoryName: venue.categoryName,
-              rating: venue.rating,
+              categoryName: venue.category,
+              rating:
+                venue.topRating !== null
+                  ? { overall: venue.topRating, reviewCount: venue.reviewCount }
+                  : undefined,
             },
           ]}
           showCenterPin
         />
       </div>
 
-      {venue.tags.length > 0 && (
+      {tags.length > 0 && (
         <div className="mt-6 flex flex-wrap gap-2">
-          {venue.tags.map((tag) => (
+          {tags.map((tag) => (
             <span
               key={tag}
               className="rounded-full border border-border px-3 py-1 text-xs text-muted"
@@ -111,12 +106,39 @@ export default async function VenuePage({ params }: Props) {
         </div>
       )}
 
-      {Object.keys(venue.rating.byDimension).length > 0 && (
-        <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3">
-          {Object.entries(venue.rating.byDimension).map(([dimension, score]) => (
-            <div key={dimension} className="rounded-lg border border-border bg-surface p-4">
-              <p className="text-xs text-muted">{DIMENSION_LABELS[dimension] ?? dimension}</p>
-              <p className="mt-1 text-lg font-semibold">{score.toFixed(1)}</p>
+      {venue.reviews.length > 0 && (
+        <div className="mt-10 flex flex-col gap-6">
+          <h2 className="text-xl font-semibold">Reviews</h2>
+          {venue.reviews.map((review) => (
+            <div key={review.id} className="rounded-lg border border-border bg-surface p-4">
+              <div className="flex items-center gap-3">
+                {review.author.avatarUrl && (
+                  <img
+                    src={review.author.avatarUrl}
+                    alt={review.author.name}
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
+                )}
+                <div>
+                  <p className="text-sm font-medium">{review.author.name}</p>
+                  <p className="text-xs text-muted">
+                    {new Date(review.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <span className="ml-auto text-sm font-semibold">{review.rating.toFixed(1)}</span>
+              </div>
+              {review.textBody && (
+                <p className="mt-3 text-sm leading-relaxed">{review.textBody}</p>
+              )}
+              {review.tags.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {review.tags.map((tag) => (
+                    <span key={tag} className="rounded-full bg-accent/10 px-2 py-0.5 text-xs">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>

@@ -2,16 +2,30 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import type {
-  VenueCategoryDto,
+  CreateVenueInput,
   VenueDetailDto,
   VenueListItemDto,
-  VenueRatingSummary,
   VenueSearchInput,
 } from '@chiwitrakmaochaaowelarakkhrai/shared-types';
 
-interface GeoRow {
-  id: string;
-  distance_m: number;
+function parseJsonArray(v: unknown): string[] {
+  if (Array.isArray(v)) return v as string[];
+  if (typeof v === 'string') {
+    try { return JSON.parse(v) as string[]; } catch { return []; }
+  }
+  return [];
+}
+
+function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 @Injectable()
@@ -21,194 +35,171 @@ export class VenuesService {
   async search(
     params: VenueSearchInput,
   ): Promise<{ items: VenueListItemDto[]; page: number; pageSize: number }> {
-    const { cityId, query, lat, lng, radiusM, categoryId, page, pageSize } =
-      params;
-    const offset = (page - 1) * pageSize;
+    const {
+      query,
+      category,
+      priceRange,
+      musicGenre,
+      crowdType,
+      lat,
+      lng,
+      radiusM,
+      publishedOnly,
+      page,
+      pageSize,
+    } = params;
 
-    let venueIds: string[];
-    let distanceById = new Map<string, number>();
+    // SQL Server doesn't support mode: 'insensitive' — case sensitivity depends on collation
+    // (default SQL Server collation is case-insensitive, so contains works correctly)
+    const allVenues = await this.prisma.venue.findMany({
+      where: {
+        isClosed: false,
+        ...(publishedOnly && { isPublished: true }),
+        ...(category && { category }),
+        ...(priceRange && { priceRange }),
+        // JSON arrays stored as strings: search for "value" (with quotes) to match exact elements
+        ...(musicGenre && { musicGenres: { string_contains: `"${musicGenre}"` } }),
+        ...(crowdType && { crowdTypes: { string_contains: `"${crowdType}"` } }),
+        ...(query && { name: { contains: query } }),
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
-    if (lat !== undefined && lng !== undefined) {
-      const conditions: Prisma.Sql[] = [Prisma.sql`v.status = 'ACTIVE'`];
-      if (cityId) conditions.push(Prisma.sql`v."cityId" = ${cityId}`);
-      if (categoryId)
-        conditions.push(Prisma.sql`v."categoryId" = ${categoryId}`);
-      if (query) conditions.push(Prisma.sql`v.name ILIKE ${'%' + query + '%'}`);
-      const whereClause = Prisma.join(conditions, ' AND ');
-
-      // Haversine distance computed in SQL. `least/greatest` clamp guards against
-      // acos() domain errors from floating point rounding at very small distances.
-      const rows = await this.prisma.$queryRaw<GeoRow[]>(Prisma.sql`
-        SELECT * FROM (
-          SELECT v.id,
-            (6371000 * acos(least(1, greatest(-1,
-              cos(radians(${lat})) * cos(radians(v.lat)) * cos(radians(v.lng) - radians(${lng}))
-              + sin(radians(${lat})) * sin(radians(v.lat))
-            )))) AS distance_m
-          FROM venues v
-          WHERE ${whereClause}
-        ) sub
-        WHERE sub.distance_m <= ${radiusM}
-        ORDER BY sub.distance_m ASC
-        LIMIT ${pageSize} OFFSET ${offset}
-      `);
-
-      venueIds = rows.map((r) => r.id);
-      distanceById = new Map(rows.map((r) => [r.id, r.distance_m]));
+    // Apply geo filtering in application code
+    let filtered: (typeof allVenues[number] & { distanceM: number | null })[];
+    if (lat !== undefined && lng !== undefined && radiusM !== undefined) {
+      filtered = allVenues
+        .map((v) => ({ ...v, distanceM: haversineMeters(lat, lng, v.lat, v.lng) }))
+        .filter((v) => v.distanceM <= radiusM)
+        .sort((a, b) => a.distanceM - b.distanceM);
     } else {
-      const venues = await this.prisma.venue.findMany({
-        where: {
-          status: 'ACTIVE',
-          ...(cityId && { cityId }),
-          ...(categoryId && { categoryId }),
-          ...(query && { name: { contains: query, mode: 'insensitive' } }),
-        },
-        select: { id: true },
-        orderBy: { createdAt: 'desc' },
-        skip: offset,
-        take: pageSize,
-      });
-      venueIds = venues.map((v) => v.id);
+      filtered = allVenues.map((v) => ({ ...v, distanceM: null }));
     }
 
-    const items = await this.assembleListItems(venueIds, distanceById);
-    // Preserve the order search/distance produced above.
-    const itemById = new Map(items.map((i) => [i.id, i]));
-    const ordered = venueIds
-      .map((id) => itemById.get(id))
-      .filter((i): i is VenueListItemDto => !!i);
+    const offset = (page - 1) * pageSize;
+    const paged = filtered.slice(offset, offset + pageSize);
 
-    return { items: ordered, page, pageSize };
+    const items = await this.assembleListItems(paged);
+    return { items, page, pageSize };
   }
 
-  async listCategories(): Promise<VenueCategoryDto[]> {
-    return this.prisma.venueCategory.findMany({ orderBy: { name: 'asc' } });
-  }
-
-  async getBySlug(slug: string): Promise<VenueDetailDto> {
+  async getById(id: string): Promise<VenueDetailDto> {
     const venue = await this.prisma.venue.findUnique({
-      where: { slug },
+      where: { id },
       include: {
-        category: true,
-        tags: { include: { tag: true } },
-        ratingAggregates: true,
+        createdBy: { select: { id: true, name: true } },
+        lastEditedBy: { select: { id: true, name: true } },
+        reviews: {
+          where: { isPublished: true },
+          include: { account: { select: { id: true, name: true, avatarUrl: true } } },
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+        },
       },
     });
-    if (!venue || venue.status === 'CLOSED') {
-      throw new NotFoundException('Venue not found');
-    }
 
-    const overall = await this.prisma.review.aggregate({
-      where: { venueId: venue.id, status: 'PUBLISHED' },
-      _avg: { overallRating: true },
+    if (!venue || !venue.isPublished || venue.isClosed) throw new NotFoundException('Venue not found');
+
+    const stats = await this.prisma.review.aggregate({
+      where: { venueId: id, isPublished: true },
+      _avg: { rating: true },
       _count: { _all: true },
     });
 
-    const coverPhoto = await this.prisma.reviewMedia.findFirst({
-      where: {
-        review: { venueId: venue.id, status: 'PUBLISHED' },
-        type: 'PHOTO',
-      },
-      orderBy: { id: 'desc' },
-    });
-
-    const rating: VenueRatingSummary = {
-      overall: overall._avg.overallRating ?? 0,
-      reviewCount: overall._count._all,
-      byDimension: Object.fromEntries(
-        venue.ratingAggregates.map((a) => [a.dimension, a.avgScore]),
-      ),
-    };
-
     return {
       id: venue.id,
-      slug: venue.slug,
       name: venue.name,
-      categoryName: venue.category?.name ?? null,
+      category: venue.category,
+      address: venue.address,
       lat: venue.lat,
       lng: venue.lng,
+      city: venue.city,
+      coverCharge: venue.coverCharge,
+      musicGenres: parseJsonArray(venue.musicGenres),
+      crowdTypes: parseJsonArray(venue.crowdTypes),
       priceRange: venue.priceRange,
+      hoursJson: venue.hoursJson as Record<string, string> | null,
+      photos: parseJsonArray(venue.photos),
+      isPublished: venue.isPublished,
+      topRating: stats._avg.rating ?? null,
+      reviewCount: stats._count._all,
       distanceM: null,
-      rating,
-      coverPhotoUrl: coverPhoto?.url ?? null,
-      curatedRating: venue.curatedRating,
-      description: venue.description,
-      address: venue.address,
-      tags: venue.tags.map((t) => t.tag.labelEn),
-      status: venue.status,
-      curatedReview: venue.curatedReview,
+      createdById: venue.createdById,
+      createdByName: venue.createdBy?.name ?? '',
+      lastEditedById: venue.lastEditedById,
+      lastEditedByName: venue.lastEditedBy?.name ?? '',
+      createdAt: venue.createdAt.toISOString(),
+      updatedAt: venue.updatedAt.toISOString(),
+      reviews: venue.reviews.map((r) => ({
+        id: r.id,
+        rating: r.rating,
+        textBody: r.textBody,
+        tags: parseJsonArray(r.tags ?? []),
+        isPublished: r.isPublished,
+        createdAt: r.createdAt.toISOString(),
+        author: {
+          id: r.account.id,
+          name: r.account.name,
+          avatarUrl: r.account.avatarUrl,
+        },
+      })),
     };
   }
 
-  private async assembleListItems(
-    venueIds: string[],
-    distanceById: Map<string, number>,
-  ): Promise<VenueListItemDto[]> {
-    if (venueIds.length === 0) return [];
-
-    const [venues, aggregates, overallStats, coverPhotos] = await Promise.all([
-      this.prisma.venue.findMany({
-        where: { id: { in: venueIds } },
-        include: { category: true },
-      }),
-      this.prisma.venueRatingAggregate.findMany({
-        where: { venueId: { in: venueIds } },
-      }),
-      this.prisma.review.groupBy({
-        by: ['venueId'],
-        where: { venueId: { in: venueIds }, status: 'PUBLISHED' },
-        _avg: { overallRating: true },
-        _count: { _all: true },
-      }),
-      this.prisma.reviewMedia.findMany({
-        where: {
-          review: { venueId: { in: venueIds }, status: 'PUBLISHED' },
-          type: 'PHOTO',
-        },
-        include: { review: { select: { venueId: true } } },
-        orderBy: { id: 'desc' },
-      }),
-    ]);
-
-    const aggregatesByVenue = new Map<string, typeof aggregates>();
-    for (const agg of aggregates) {
-      const list = aggregatesByVenue.get(agg.venueId) ?? [];
-      list.push(agg);
-      aggregatesByVenue.set(agg.venueId, list);
-    }
-    const overallByVenue = new Map(overallStats.map((s) => [s.venueId, s]));
-    const coverByVenue = new Map<string, string>();
-    for (const media of coverPhotos) {
-      const venueId = media.review.venueId;
-      if (!coverByVenue.has(venueId)) {
-        coverByVenue.set(venueId, media.url);
-      }
-    }
-
-    return venues.map((venue) => {
-      const overall = overallByVenue.get(venue.id);
-      const dims = aggregatesByVenue.get(venue.id) ?? [];
-      const rating: VenueRatingSummary = {
-        overall: overall?._avg.overallRating ?? 0,
-        reviewCount: overall?._count._all ?? 0,
-        byDimension: Object.fromEntries(
-          dims.map((d) => [d.dimension, d.avgScore]),
-        ),
-      };
-
-      return {
-        id: venue.id,
-        slug: venue.slug,
-        name: venue.name,
-        categoryName: venue.category?.name ?? null,
-        lat: venue.lat,
-        lng: venue.lng,
-        priceRange: venue.priceRange,
-        distanceM: distanceById.get(venue.id) ?? null,
-        rating,
-        coverPhotoUrl: coverByVenue.get(venue.id) ?? null,
-        curatedRating: venue.curatedRating,
-      };
+  async suggestVenue(input: CreateVenueInput, accountId: string) {
+    const venue = await this.prisma.venue.create({
+      data: {
+        name: input.name,
+        category: input.category ?? 'OTHER',
+        address: input.address,
+        lat: input.lat,
+        lng: input.lng,
+        city: input.city ?? 'Bangkok',
+        coverCharge: input.coverCharge ?? null,
+        musicGenres: input.musicGenres ?? [],
+        crowdTypes: input.crowdTypes ?? [],
+        priceRange: input.priceRange ?? null,
+        hoursJson: input.hoursJson ?? Prisma.DbNull,
+        photos: input.photos ?? [],
+        isPublished: false,
+        createdById: accountId,
+        lastEditedById: accountId,
+      },
     });
+    return { id: venue.id, name: venue.name, category: venue.category, isPublished: venue.isPublished };
+  }
+
+  private async assembleListItems(
+    venues: ({ id: string; name: string; category: string; address: string; lat: number; lng: number; city: string; coverCharge: number | null; musicGenres: unknown; crowdTypes: unknown; priceRange: string | null; photos: unknown; isPublished: boolean; distanceM: number | null } & Record<string, unknown>)[],
+  ): Promise<VenueListItemDto[]> {
+    if (venues.length === 0) return [];
+
+    const reviewStats = await this.prisma.review.groupBy({
+      by: ['venueId'],
+      where: { isPublished: true },
+      _avg: { rating: true },
+      _count: { _all: true },
+    });
+
+    const statsByVenue = new Map(reviewStats.map((s) => [s.venueId, s]));
+
+    return venues.map((venue) => ({
+      id: venue.id,
+      name: venue.name,
+      category: venue.category as VenueListItemDto['category'],
+      address: venue.address,
+      lat: venue.lat,
+      lng: venue.lng,
+      city: venue.city,
+      coverCharge: venue.coverCharge,
+      musicGenres: parseJsonArray(venue.musicGenres),
+      crowdTypes: parseJsonArray(venue.crowdTypes),
+      priceRange: venue.priceRange as VenueListItemDto['priceRange'],
+      photos: parseJsonArray(venue.photos),
+      isPublished: venue.isPublished,
+      topRating: statsByVenue.get(venue.id)?._avg?.rating ?? null,
+      reviewCount: statsByVenue.get(venue.id)?._count?._all ?? 0,
+      distanceM: venue.distanceM,
+    }));
   }
 }

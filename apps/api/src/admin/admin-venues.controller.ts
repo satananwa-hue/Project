@@ -1,11 +1,14 @@
 import {
   Body,
   Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
   UseGuards,
-  UsePipes,
 } from '@nestjs/common';
 import {
   createVenueSchema,
@@ -16,25 +19,40 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { JwtPayload } from '../common/guards/jwt-auth.guard';
 
 @Controller('admin/venues')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN')
+@Roles('ADMINISTRATOR')
 export class AdminVenuesController {
   constructor(private readonly adminVenuesService: AdminVenuesService) {}
 
+  @Get()
+  list() {
+    return this.adminVenuesService.list();
+  }
+
   @Post()
-  @UsePipes(new ZodValidationPipe(createVenueSchema))
-  create(@Body() body: ReturnType<typeof createVenueSchema.parse>) {
-    return this.adminVenuesService.create(body);
+  create(
+    @Body(new ZodValidationPipe(createVenueSchema)) body: ReturnType<typeof createVenueSchema.parse>,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.adminVenuesService.create(body, user.sub);
   }
 
   @Patch(':id')
-  @UsePipes(new ZodValidationPipe(updateVenueSchema))
   update(
     @Param('id') id: string,
-    @Body() body: ReturnType<typeof updateVenueSchema.parse>,
+    @Body(new ZodValidationPipe(updateVenueSchema)) body: ReturnType<typeof updateVenueSchema.parse>,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.adminVenuesService.update(id, body);
+    return this.adminVenuesService.update(id, body, user.sub);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@Param('id') id: string) {
+    await this.adminVenuesService.remove(id);
   }
 }
