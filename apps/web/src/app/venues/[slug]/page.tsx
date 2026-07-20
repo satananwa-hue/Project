@@ -1,7 +1,11 @@
 ﻿import type { Metadata } from "next";
+import type { ReviewSummaryDto } from "@chiwitrakmaochaaowelarakkhrai/shared-types";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getVenueBySlug } from "@/lib/api";
+import { getSession } from "@/lib/session";
 import { VenueMap } from "@/components/venue-map-loader";
+import { WriteReviewForm } from "./write-review-form";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -31,7 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function VenuePage({ params }: Props) {
   const { slug } = await params;
-  const venue = await getVenueBySlug(slug);
+  const [venue, session] = await Promise.all([getVenueBySlug(slug), getSession()]);
   if (!venue) notFound();
 
   const jsonLd = {
@@ -109,7 +113,7 @@ export default async function VenuePage({ params }: Props) {
       {venue.reviews.length > 0 && (
         <div className="mt-10 flex flex-col gap-6">
           <h2 className="text-xl font-semibold">Reviews</h2>
-          {venue.reviews.map((review) => (
+          {venue.reviews.map((review: ReviewSummaryDto) => (
             <div key={review.id} className="rounded-lg border border-border bg-surface p-4">
               <div className="flex items-center gap-3">
                 {review.author.avatarUrl && (
@@ -132,7 +136,7 @@ export default async function VenuePage({ params }: Props) {
               )}
               {review.tags.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
-                  {review.tags.map((tag) => (
+                  {review.tags.map((tag: string) => (
                     <span key={tag} className="rounded-full bg-accent/10 px-2 py-0.5 text-xs">
                       {tag}
                     </span>
@@ -143,6 +147,19 @@ export default async function VenuePage({ params }: Props) {
           ))}
         </div>
       )}
+
+      <div className="mt-10">
+        {session ? (
+          <WriteReviewForm venueId={venue.id} slug={slug} />
+        ) : (
+          <p className="text-sm text-muted">
+            <Link href="/login" className="underline hover:text-foreground">
+              Sign in
+            </Link>{" "}
+            to write a review.
+          </p>
+        )}
+      </div>
     </div>
   );
 }

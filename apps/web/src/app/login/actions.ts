@@ -5,10 +5,9 @@ import { SESSION_COOKIE } from "@/lib/session";
 import type { AuthSession } from "@chiwitrakmaochaaowelarakkhrai/shared-types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
-const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // matches API's JWT_EXPIRES_IN default (7d)
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
 type ActionResult = { ok: true } | { ok: false; error: string };
-type RequestOtpResult = { ok: true; devCode?: string } | { ok: false; error: string };
 
 async function readErrorMessage(res: Response): Promise<string> {
   try {
@@ -19,31 +18,11 @@ async function readErrorMessage(res: Response): Promise<string> {
   }
 }
 
-export async function requestOtpAction(phone: string): Promise<RequestOtpResult> {
-  const res = await fetch(`${API_BASE_URL}/auth/otp/request`, {
+export async function loginAction(email: string, password: string): Promise<ActionResult> {
+  const res = await fetch(`${API_BASE_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ phone }),
-  });
-
-  if (!res.ok) {
-    return { ok: false, error: await readErrorMessage(res) };
-  }
-  // devCode is only ever present when no real SMS provider is configured
-  // (local/dev) - never in an environment actually sending SMS.
-  const body = (await res.json()) as { devCode?: string };
-  return { ok: true, devCode: body.devCode };
-}
-
-export async function verifyOtpAction(
-  phone: string,
-  code: string,
-  inviteCode: string | undefined,
-): Promise<ActionResult> {
-  const res = await fetch(`${API_BASE_URL}/auth/otp/verify`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ phone, code, inviteCode: inviteCode || undefined }),
+    body: JSON.stringify({ email, password }),
   });
 
   if (!res.ok) {

@@ -1,0 +1,43 @@
+version: "1"
+
+services:
+  # ── NestJS API ────────────────────────────────────────────────────────────
+  - type: web
+    name: nightcheck-api
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build --workspace=packages/shared-types && npm run build --workspace=apps/api && npx prisma generate --schema=apps/api/prisma/schema.prisma
+    startCommand: cd apps/api && npx prisma db push && node dist/main
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false   # set in Render dashboard — Neon PostgreSQL connection string (postgresql://...)
+      - key: JWT_SECRET
+        sync: false   # set in Render dashboard
+      - key: JWT_EXPIRES_IN
+        value: "7d"
+      - key: CORS_ORIGINS
+        sync: false   # comma-separated allowed origins, e.g. https://nightcheck-web.onrender.com
+
+  # ── Next.js reviewer web app ──────────────────────────────────────────────
+  - type: web
+    name: nightcheck-web
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build --workspace=packages/shared-types && npm run build --workspace=apps/web
+    startCommand: npm run start --workspace=apps/web
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        sync: false   # e.g. https://nightcheck-api.onrender.com/api
+
+  # ── Next.js admin app ─────────────────────────────────────────────────────
+  - type: web
+    name: nightcheck-admin
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build --workspace=packages/shared-types && npm run build --workspace=apps/admin
+    startCommand: npm run start --workspace=apps/admin
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        sync: false   # e.g. https://nightcheck-api.onrender.com/api
