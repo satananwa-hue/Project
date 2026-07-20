@@ -17,6 +17,17 @@ export async function submitReviewAction(
 
   const rating = Number(formData.get("rating"));
   const textBody = String(formData.get("textBody") ?? "").trim();
+  const tagsRaw = formData.get("tags");
+  const musicGenreNotes = String(formData.get("musicGenreNotes") ?? "").trim() || null;
+  const priceLevelNotes = String(formData.get("priceLevelNotes") ?? "").trim() || null;
+  const crowdNotes = String(formData.get("crowdNotes") ?? "").trim() || null;
+
+  let tags: string[] = [];
+  try {
+    if (tagsRaw) tags = JSON.parse(String(tagsRaw)) as string[];
+  } catch {
+    tags = [];
+  }
 
   if (!rating || rating < 1 || rating > 5) {
     return { ok: false, error: "Please select a rating from 1 to 5." };
@@ -35,6 +46,10 @@ export async function submitReviewAction(
       venueId,
       rating,
       textBody,
+      tags,
+      musicGenreNotes,
+      priceLevelNotes,
+      crowdNotes,
       isPublished: true,
     }),
   });

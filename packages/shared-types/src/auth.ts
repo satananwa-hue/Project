@@ -62,3 +62,33 @@ export interface AuthSession {
     points: number;
   };
 }
+
+export const REPUTATION_LEVELS: Record<number, string> = {
+  1: 'New Explorer',
+  2: 'Rookie Reviewer',
+  3: 'Neighborhood Scout',
+  4: 'Community Contributor',
+  5: 'Trusted Reviewer',
+};
+
+const LEVEL_THRESHOLDS = [
+  { level: 5, min: 500 },
+  { level: 4, min: 250 },
+  { level: 3, min: 75 },
+  { level: 2, min: 15 },
+  { level: 1, min: 0 },
+];
+
+export function getReputationLevel(points: number): number {
+  return LEVEL_THRESHOLDS.find((t) => points >= t.min)?.level ?? 1;
+}
+
+export interface UserProfile {
+  id: string;
+  displayName: string;
+  email: string;
+  avatarUrl: string | null;
+  role: AccountRole;
+  points: number;
+  reputationLevel: number;
+}

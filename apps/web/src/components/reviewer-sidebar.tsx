@@ -23,8 +23,9 @@ export function ReviewerSidebar({ profile }: { profile: UserProfile }) {
   return (
     <aside className="fixed top-0 right-0 z-40 flex h-full w-64 flex-col border-l border-border bg-surface p-5">
       <div className="mb-6">
-        <p className="font-medium">👤 {profile.displayName}</p>
-        <p className="text-sm text-accent">{levelName}</p>
+        <p className="font-medium">{profile.displayName}</p>
+        <p className="text-xs text-accent">{levelName}</p>
+        <p className="mt-1 text-xs text-muted">{profile.points} pts</p>
       </div>
       <nav className="flex flex-1 flex-col gap-1 text-sm">
         <SidebarLink href="/reviews/new">+ Write Review</SidebarLink>

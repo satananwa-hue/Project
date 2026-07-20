@@ -1,5 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
+import type { AccountDto } from "@chiwitrakmaochaaowelarakkhrai/shared-types";
+import { getReputationLevel } from "@chiwitrakmaochaaowelarakkhrai/shared-types";
 import type { UserProfile } from "@chiwitrakmaochaaowelarakkhrai/shared-types";
 
 export const SESSION_COOKIE = "nc_session";
@@ -10,9 +12,6 @@ export async function getSessionToken(): Promise<string | null> {
   return (await cookies()).get(SESSION_COOKIE)?.value ?? null;
 }
 
-// The cookie value is the JWT our NestJS API already issues and signs - no
-// separate session-encryption layer needed, since that token is already
-// tamper-proof and the API is the source of truth for verifying it.
 export async function getSession(): Promise<UserProfile | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
@@ -23,7 +22,16 @@ export async function getSession(): Promise<UserProfile | null> {
       cache: "no-store",
     });
     if (!res.ok) return null;
-    return (await res.json()) as UserProfile;
+    const dto = (await res.json()) as AccountDto;
+    return {
+      id: dto.id,
+      displayName: dto.name,
+      email: dto.email,
+      avatarUrl: dto.avatarUrl,
+      role: dto.role,
+      points: dto.points,
+      reputationLevel: getReputationLevel(dto.points),
+    };
   } catch {
     return null;
   }
