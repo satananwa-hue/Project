@@ -10,6 +10,7 @@ const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 type ActionResult = { ok: true } | { ok: false; error: string };
 
 async function readErrorMessage(res: Response): Promise<string> {
+  if (res.status >= 500) return "Service unavailable — please try again later.";
   try {
     const body = (await res.json()) as { message?: string | string[] };
     return Array.isArray(body.message) ? body.message.join(", ") : (body.message ?? "Something went wrong.");
