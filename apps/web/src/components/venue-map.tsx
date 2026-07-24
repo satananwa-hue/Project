@@ -152,7 +152,7 @@ export function VenueMap({
       <MapContainer
         center={mapCenter}
         zoom={mapZoom}
-        scrollWheelZoom={false}
+        scrollWheelZoom={true}
         className="h-full w-full"
       >
         <TileLayer
