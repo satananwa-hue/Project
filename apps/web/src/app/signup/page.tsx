@@ -53,11 +53,12 @@ export default function SignupPage() {
             type="email"
             required
             autoComplete="email"
-            placeholder="you@example.com"
+            placeholder="your.real@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="rounded-lg border border-border bg-surface px-3 py-2 text-foreground"
           />
+          <span className="text-xs text-muted">Use your real email — you'll need it to log in</span>
         </label>
         <label className="flex flex-col gap-1 text-sm">
           Password <span className="text-muted">(min 8 chars)</span>
