@@ -35,7 +35,7 @@ export class SeedService implements OnModuleInit {
 
       const csvPath = join(__dirname, '../prisma/venues.csv');
       const csv = readFileSync(csvPath, 'utf-8');
-      const rows = parse(csv, { columns: true, skip_empty_lines: true }) as Array<{
+      const rows = parse(csv, { columns: true, skip_empty_lines: true, bom: true }) as Array<{
         name: string; lat: string; lng: string; address: string;
       }>;
 
