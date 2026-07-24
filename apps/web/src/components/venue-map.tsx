@@ -5,7 +5,6 @@ import {
   CircleMarker,
   MapContainer,
   Marker,
-  Popup,
   TileLayer,
   useMap,
 } from 'react-leaflet';
@@ -296,41 +295,11 @@ export function VenueMap({
 
 function VenueMarker({ marker }: { marker: VenueMapMarker }) {
   return (
-    <Marker position={[marker.lat, marker.lng]}>
-      <Popup>
-        <div className="w-40">
-          {marker.coverPhoto && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={marker.coverPhoto}
-              alt={marker.name}
-              className="mb-2 h-20 w-full rounded object-cover"
-            />
-          )}
-          <Link href={`/venues/${marker.id}`} className="font-medium">
-            {marker.name}
-          </Link>
-          {marker.categoryName && <p className="text-xs text-muted">{marker.categoryName}</p>}
-          {marker.rating && (
-            <p className="mt-1 text-sm">
-              {marker.rating.reviewCount > 0 ? (
-                <>
-                  ★ {marker.rating.overall.toFixed(1)}{' '}
-                  <span className="text-muted">
-                    ({marker.rating.reviewCount}{' '}
-                    {marker.rating.reviewCount === 1 ? 'review' : 'reviews'})
-                  </span>
-                </>
-              ) : (
-                <span className="text-muted">No reviews yet</span>
-              )}
-            </p>
-          )}
-          <Link href={`/venues/${marker.id}`} className="mt-1 inline-block text-sm text-accent">
-            View venue →
-          </Link>
-        </div>
-      </Popup>
-    </Marker>
+    <Marker
+      position={[marker.lat, marker.lng]}
+      eventHandlers={{
+        click: () => { window.location.href = `/venues/${marker.id}`; },
+      }}
+    />
   );
 }
