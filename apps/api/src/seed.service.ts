@@ -42,6 +42,7 @@ export class SeedService implements OnModuleInit {
       this.logger.log(`Seeding ${rows.length} venues...`);
       let seeded = 0;
 
+      let firstError: unknown = undefined;
       for (const row of rows) {
         const lat = parseFloat(row.lat);
         const lng = parseFloat(row.lng);
@@ -50,7 +51,7 @@ export class SeedService implements OnModuleInit {
           await this.prisma.venue.create({
             data: {
               name: row.name,
-              category: 'BAR',
+              category: 'BAR' as any,
               address: row.address || 'Bangkok, Thailand',
               lat,
               lng,
@@ -64,7 +65,15 @@ export class SeedService implements OnModuleInit {
             },
           });
           seeded++;
-        } catch { /* skip duplicates */ }
+        } catch (e) {
+          if (firstError === undefined) {
+            firstError = e;
+            this.logger.error('First venue create error:', e);
+          }
+        }
+      }
+      if (firstError !== undefined) {
+        this.logger.error(`Seed had errors — first error logged above. Seeded ${seeded}/${rows.length}.`);
       }
 
       this.logger.log(`Done — seeded ${seeded} venues.`);
