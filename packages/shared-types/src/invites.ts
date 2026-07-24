@@ -21,3 +21,9 @@ export interface InviteDto {
   ownedByAccountId: string | null;
   createdAt: string;
 }
+
+export interface TopInviterDto {
+  userId: string;
+  displayName: string;
+  directInvites: number;
+}
