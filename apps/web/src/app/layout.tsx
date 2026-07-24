@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { getSession } from "@/lib/session";
-import { ReviewerSidebar } from "@/components/reviewer-sidebar";
+import { ProfileAvatarButton, ReviewerProfileSheet } from "@/components/reviewer-sidebar";
+import { REPUTATION_LEVELS } from "@chiwitrakmaochaaowelarakkhrai/shared-types";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -63,6 +64,12 @@ export default async function RootLayout({
                   Login
                 </Link>
               )}
+              {profile && (
+                <ProfileAvatarButton
+                  level={profile.reputationLevel}
+                  levelName={REPUTATION_LEVELS[profile.reputationLevel] ?? "New Explorer"}
+                />
+              )}
             </nav>
           </div>
         </header>
@@ -70,7 +77,7 @@ export default async function RootLayout({
         <footer className="border-t border-border py-8 text-center text-sm text-muted">
           © {new Date().getFullYear()} {siteName}. Bangkok nightlife, reviewed by people who were actually there.
         </footer>
-        {profile && <ReviewerSidebar profile={profile} />}
+        {profile && <ReviewerProfileSheet profile={profile} />}
       </body>
     </html>
   );
