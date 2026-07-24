@@ -460,13 +460,12 @@ class _Avatar extends StatelessWidget {
         backgroundColor: kSurfaceColor,
       );
     }
-    return _AvatarShell(
+    // Use level badge instead of a plain initial letter
+    final level = getLevelInfo(session!.points).level;
+    return CircleAvatar(
       radius: radius,
-      backgroundColor: kAccentColor,
-      child: Text(
-        session!.name.isNotEmpty ? session!.name[0].toUpperCase() : '?',
-        style: TextStyle(color: Colors.black, fontSize: radius * 0.8, fontWeight: FontWeight.bold),
-      ),
+      backgroundColor: kSurfaceColor,
+      child: ClipOval(child: LevelAvatar(level: level, size: radius * 2)),
     );
   }
 }
