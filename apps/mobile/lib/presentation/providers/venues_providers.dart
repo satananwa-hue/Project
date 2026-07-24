@@ -8,6 +8,7 @@ import 'package:mobile/data/repositories/venues_repository_impl.dart';
 import 'package:mobile/domain/entities/venue_detail.dart';
 import 'package:mobile/domain/entities/venue_summary.dart';
 import 'package:mobile/domain/repositories/venues_repository.dart';
+import 'package:mobile/presentation/providers/auth_provider.dart';
 
 final _httpClientProvider = Provider<http.Client>((ref) => http.Client());
 
@@ -21,8 +22,10 @@ final venuesRepositoryProvider = Provider<VenuesRepository>((ref) {
 
 final locationServiceProvider = Provider<LocationService>((ref) => LocationService());
 
-/// Auto-requested on first build — resolves to null if permission denied.
-final autoLocationProvider = FutureProvider<Position?>((ref) {
+/// Auto-requested on first build — resolves to null if not logged in or permission denied.
+final autoLocationProvider = FutureProvider<Position?>((ref) async {
+  final session = await ref.watch(authProvider.future);
+  if (session == null) return null;
   return ref.read(locationServiceProvider).getCurrentPosition();
 });
 

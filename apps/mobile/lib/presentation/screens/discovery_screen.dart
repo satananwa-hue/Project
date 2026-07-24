@@ -89,22 +89,27 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(autoLocationProvider, (_, next) {
-      final pos = next.asData?.value;
-      if (pos != null && !_didAutoFly) {
-        _didAutoFly = true;
-        _mapController.move(LatLng(pos.latitude, pos.longitude), 14);
-      }
-    });
+    final session = ref.watch(authProvider).asData?.value;
+    final isLoggedIn = session != null;
 
-    final autoPos = ref.watch(autoLocationProvider).asData?.value;
-    final manualPos = ref.watch(userPositionProvider);
+    // Auto-fly to user position only for logged-in users
+    if (isLoggedIn) {
+      ref.listen(autoLocationProvider, (_, next) {
+        final pos = next.asData?.value;
+        if (pos != null && !_didAutoFly) {
+          _didAutoFly = true;
+          _mapController.move(LatLng(pos.latitude, pos.longitude), 14);
+        }
+      });
+    }
+
+    final autoPos = isLoggedIn ? ref.watch(autoLocationProvider).asData?.value : null;
+    final manualPos = isLoggedIn ? ref.watch(userPositionProvider) : null;
     final activePos = manualPos ?? autoPos;
     final userLatLng = activePos != null ? LatLng(activePos.latitude, activePos.longitude) : null;
     final hasLocation = activePos != null;
 
     final venuesAsync = ref.watch(venuesSearchProvider);
-    final session = ref.watch(authProvider).asData?.value;
 
     return Scaffold(
       backgroundColor: kBackgroundColor,
@@ -112,12 +117,15 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
         children: [
           // Map layer
           venuesAsync.when(
-            data: (venues) => VenueMapView(
-              venues: venues,
-              controller: _mapController,
-              userPosition: userLatLng,
-              onMarkerTap: (venue) => context.push('/venues/${venue.id}'),
-            ),
+            data: (venues) {
+              final display = isLoggedIn ? venues : venues.where((v) => v.reviewCount > 0).toList();
+              return VenueMapView(
+                venues: display,
+                controller: _mapController,
+                userPosition: userLatLng,
+                onMarkerTap: (venue) => context.push('/venues/${venue.id}'),
+              );
+            },
             loading: () => VenueMapView(venues: const [], controller: _mapController, userPosition: userLatLng),
             error: (_, _) => VenueMapView(venues: const [], controller: _mapController, userPosition: userLatLng),
           ),
@@ -189,20 +197,22 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                   ),
                   child: const Icon(Icons.remove, size: 20),
                 ),
-                const SizedBox(height: 12),
-                FloatingActionButton(
-                  heroTag: 'near-me',
-                  backgroundColor: kSurfaceColor,
-                  foregroundColor: kAccentColor,
-                  onPressed: _locating ? null : _useMyLocation,
-                  child: _locating
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(color: kAccentColor, strokeWidth: 2),
-                        )
-                      : const Icon(Icons.my_location),
-                ),
+                if (isLoggedIn) ...[
+                  const SizedBox(height: 12),
+                  FloatingActionButton(
+                    heroTag: 'near-me',
+                    backgroundColor: kSurfaceColor,
+                    foregroundColor: kAccentColor,
+                    onPressed: _locating ? null : _useMyLocation,
+                    child: _locating
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(color: kAccentColor, strokeWidth: 2),
+                          )
+                        : const Icon(Icons.my_location),
+                  ),
+                ],
               ],
             ),
           ),
@@ -218,12 +228,16 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: venuesAsync.when(
-                data: (venues) => _VenueList(
-                  venues: venues,
-                  scrollController: scrollController,
-                  hasLocation: hasLocation,
-                  onRequestLocation: _useMyLocation,
-                ),
+                data: (venues) {
+                  final display = isLoggedIn ? venues : venues.where((v) => v.reviewCount > 0).toList();
+                  return _VenueList(
+                    venues: display,
+                    scrollController: scrollController,
+                    hasLocation: hasLocation,
+                    isLoggedIn: isLoggedIn,
+                    onRequestLocation: _useMyLocation,
+                  );
+                },
                 loading: () => const Center(child: CircularProgressIndicator(color: kAccentColor)),
                 error: (error, _) => Center(
                   child: Padding(
@@ -252,12 +266,14 @@ class _VenueList extends ConsumerWidget {
   final List<VenueSummary> venues;
   final ScrollController scrollController;
   final bool hasLocation;
+  final bool isLoggedIn;
   final VoidCallback onRequestLocation;
 
   const _VenueList({
     required this.venues,
     required this.scrollController,
     required this.hasLocation,
+    required this.isLoggedIn,
     required this.onRequestLocation,
   });
 
@@ -303,18 +319,20 @@ class _VenueList extends ConsumerWidget {
                   '${venues.length} venue${venues.length == 1 ? '' : 's'} found',
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13),
                 ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: onRequestLocation,
-                  child: const Text(
-                    'Use my location',
-                    style: TextStyle(
-                      color: kAccentColor,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
+                if (isLoggedIn) ...[
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: onRequestLocation,
+                    child: const Text(
+                      'Use my location',
+                      style: TextStyle(
+                        color: kAccentColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
             ],
           ),

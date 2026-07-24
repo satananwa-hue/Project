@@ -77,12 +77,14 @@ export function VenueMap({
   zoom,
   showCenterPin = false,
   canCreate = false,
+  isLoggedIn = false,
 }: {
   markers?: VenueMapMarker[];
   center?: [number, number];
   zoom?: number;
   showCenterPin?: boolean;
   canCreate?: boolean;
+  isLoggedIn?: boolean;
 }) {
   const geoMode = externalMarkers === undefined;
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
@@ -90,6 +92,11 @@ export function VenueMap({
   const [allMarkers, setAllMarkers] = useState<VenueMapMarker[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [listOpen, setListOpen] = useState(false);
+
+  // Keep a ref so the geo effect can read the current value without it being a dep
+  // (avoids the hook deps-size warning from next/dynamic's two-stage render).
+  const isLoggedInRef = useRef(isLoggedIn);
+  isLoggedInRef.current = isLoggedIn;
 
   const loadAllBangkok = async () => {
     try {
@@ -103,6 +110,13 @@ export function VenueMap({
 
   useEffect(() => {
     if (!geoMode) return;
+
+    // Guests never get a location prompt — just load all Bangkok silently
+    if (!isLoggedInRef.current) {
+      loadAllBangkok();
+      return;
+    }
+
     if (!navigator.geolocation) { setGeoStatus('denied'); loadAllBangkok(); return; }
 
     setGeoStatus('loading');
@@ -129,9 +143,14 @@ export function VenueMap({
     );
   }, [geoMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const nearbyMarkers = geoMode
+  const baseMarkers = geoMode
     ? (selectedCategory ? allMarkers.filter(m => m.categoryName === selectedCategory) : allMarkers)
     : externalMarkers!;
+
+  // Guests only see venues that have at least one review
+  const nearbyMarkers = isLoggedIn
+    ? baseMarkers
+    : baseMarkers.filter(m => m.rating !== undefined && m.rating.reviewCount > 0);
 
   const markers = nearbyMarkers;
   const mapCenter: [number, number] = center ?? BANGKOK_CENTER;
@@ -140,22 +159,22 @@ export function VenueMap({
 
   return (
     <div className="relative h-full w-full">
-      {/* Geo status banner */}
-      {geoMode && geoStatus === 'loading' && (
+      {/* Geo status banner — only shown to logged-in users */}
+      {geoMode && isLoggedIn && geoStatus === 'loading' && (
         <div className="pointer-events-none absolute inset-x-0 top-16 z-[1000] flex justify-center">
           <span className="rounded-full bg-black/60 px-4 py-1 text-sm text-white backdrop-blur-sm">
             กำลังหาตำแหน่งของคุณ…
           </span>
         </div>
       )}
-      {geoMode && geoStatus === 'denied' && (
+      {geoMode && isLoggedIn && geoStatus === 'denied' && (
         <div className="pointer-events-none absolute inset-x-0 top-16 z-[1000] flex justify-center">
           <span className="rounded-full bg-black/60 px-4 py-1 text-sm text-white backdrop-blur-sm">
             ไม่ได้รับอนุญาตใช้ตำแหน่ง — แสดง Bangkok ทั้งหมด
           </span>
         </div>
       )}
-      {geoMode && geoStatus === 'granted' && allMarkers.length === 0 && (
+      {geoMode && isLoggedIn && geoStatus === 'granted' && allMarkers.length === 0 && (
         <div className="pointer-events-none absolute inset-x-0 top-16 z-[1000] flex justify-center">
           <span className="rounded-full bg-black/60 px-4 py-1 text-sm text-white backdrop-blur-sm">
             ไม่พบร้านในรัศมี 3 กม.
@@ -251,8 +270,10 @@ export function VenueMap({
           >
             <div className="w-10 h-1 rounded-full bg-white/20 mb-2" />
             <span className="text-sm text-muted">
-              {markers.length} venue{markers.length !== 1 ? 's' : ''}{' '}
-              {geoStatus === 'granted' ? 'nearby' : 'found'}
+              {markers.length}{' '}
+              {!isLoggedIn ? 'reviewed ' : ''}
+              venue{markers.length !== 1 ? 's' : ''}{' '}
+              {isLoggedIn && geoStatus === 'granted' ? 'nearby' : 'in Bangkok'}
               {selectedCategory ? ` · ${CATEGORIES.find(c => c.value === selectedCategory)?.label}` : ''}
               {' '}{listOpen ? '▾' : '▴'}
             </span>
