@@ -37,6 +37,7 @@ export type UpdateVenueInput = z.infer<typeof updateVenueSchema>;
 
 export interface VenueListItemDto {
   id: string;
+  slug: string;
   name: string;
   category: string;
   address: string;
