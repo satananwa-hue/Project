@@ -23,8 +23,6 @@ final kLevels = [
   return (level: 1, title: 'New Explorer', min: 0, nextMin: 15, nextTitle: 'Rookie Reviewer');
 }
 
-String levelAssetPath(int level) => level <= 3
-    ? 'assets/images/levels/level_$level.svg'
-    : 'assets/images/levels/level_$level.png';
+String levelAssetPath(int level) => 'assets/images/levels/level_$level.png';
 
-bool levelAssetIsSvg(int level) => level <= 3;
+bool levelAssetIsSvg(int level) => false;
