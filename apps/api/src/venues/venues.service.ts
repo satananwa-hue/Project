@@ -108,6 +108,7 @@ export class VenuesService {
 
     return {
       id: venue.id,
+      slug: venue.id,
       name: venue.name,
       category: venue.category,
       address: venue.address,
@@ -185,6 +186,7 @@ export class VenuesService {
 
     return venues.map((venue) => ({
       id: venue.id,
+      slug: venue.id,
       name: venue.name,
       category: venue.category as VenueListItemDto['category'],
       address: venue.address,
