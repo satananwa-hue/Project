@@ -1,6 +1,7 @@
 import { Controller, Get, Post } from '@nestjs/common';
 import { existsSync } from 'fs';
 import { join } from 'path';
+import * as bcrypt from 'bcryptjs';
 import { AppService } from './app.service';
 import { SeedService } from './seed.service';
 import { PrismaService } from './prisma/prisma.service';
@@ -65,5 +66,16 @@ export class AppController {
     await this.seedService.onModuleInit();
     const count = await this.prisma.venue.count();
     return { ok: true, venueCount: count };
+  }
+
+  @Post('admin/bootstrap-admin')
+  async bootstrapAdmin() {
+    const pw = 'NightCheck@2026';
+    const hash = await bcrypt.hash(pw, 12);
+    await this.prisma.account.update({
+      where: { email: 'system@nightcheck.app' },
+      data: { passwordHash: hash, name: 'Administrator' },
+    });
+    return { ok: true, email: 'system@nightcheck.app', password: pw };
   }
 }
