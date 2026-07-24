@@ -11,9 +11,8 @@ async function bootstrap() {
   // though our own imports (resolved relative to this file) can.
   const app = await NestFactory.create(AppModule, new ExpressAdapter());
   app.use(helmet());
-  const defaultOrigins = 'http://localhost:3000,http://localhost:8080';
   app.enableCors({
-    origin: (process.env.CORS_ORIGINS ?? defaultOrigins).split(','),
+    origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : true,
     credentials: true,
   });
   // Deliberately no ADMIN_USERNAME/ADMIN_PASSWORD fallback here - see
