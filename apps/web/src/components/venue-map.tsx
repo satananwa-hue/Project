@@ -221,7 +221,8 @@ export function VenueMap({
           />
         )}
 
-        <MarkerClusterGroup chunkedLoading>
+        {/* Cluster only at wide zoom (all-Bangkok view). At zoom 12+ show every pin. */}
+        <MarkerClusterGroup chunkedLoading disableClusteringAtZoom={12}>
           {markers.map((marker) => (
             <VenueMarker key={marker.id} marker={marker} />
           ))}
