@@ -25,6 +25,16 @@ L.Icon.Default.mergeOptions({
 const BANGKOK_CENTER: [number, number] = [13.7563, 100.5018];
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api';
 
+const CATEGORIES = [
+  { value: null,         label: 'All' },
+  { value: 'BAR',        label: 'Bar' },
+  { value: 'CLUB',       label: 'Club' },
+  { value: 'ROOFTOP',    label: 'Rooftop' },
+  { value: 'LIVE_MUSIC', label: 'Live Music' },
+  { value: 'LOUNGE',     label: 'Lounge' },
+  { value: 'OTHER',      label: 'Other' },
+];
+
 export interface VenueMapMarker {
   id: string;
   slug?: string;
@@ -50,7 +60,6 @@ function toMarker(v: VenueListItemDto): VenueMapMarker {
   };
 }
 
-// Recenter map when userPos changes
 function MapController({ pos }: { pos: [number, number] | null }) {
   const map = useMap();
   const didFly = useRef(false);
@@ -68,25 +77,28 @@ export function VenueMap({
   center,
   zoom,
   showCenterPin = false,
+  canCreate = false,
 }: {
   markers?: VenueMapMarker[];
   center?: [number, number];
   zoom?: number;
   showCenterPin?: boolean;
+  canCreate?: boolean;
 }) {
-  // ── Geolocation mode (home page — no external markers) ──────────────────
   const geoMode = externalMarkers === undefined;
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'granted' | 'denied'>('idle');
-  const [nearbyMarkers, setNearbyMarkers] = useState<VenueMapMarker[]>([]);
+  const [allMarkers, setAllMarkers] = useState<VenueMapMarker[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [listOpen, setListOpen] = useState(false);
 
   const loadAllBangkok = async () => {
     try {
       const res = await fetch(`${API_BASE}/venues?pageSize=5000`, { signal: AbortSignal.timeout(10000) });
       const data = (await res.json()) as { items: VenueListItemDto[] };
-      setNearbyMarkers((data.items ?? []).map(toMarker));
+      setAllMarkers((data.items ?? []).map(toMarker));
     } catch {
-      setNearbyMarkers([]);
+      setAllMarkers([]);
     }
   };
 
@@ -108,9 +120,9 @@ export function VenueMap({
             { signal: AbortSignal.timeout(8000) },
           );
           const data = (await res.json()) as { items: VenueListItemDto[] };
-          setNearbyMarkers((data.items ?? []).map(toMarker));
+          setAllMarkers((data.items ?? []).map(toMarker));
         } catch {
-          setNearbyMarkers([]);
+          setAllMarkers([]);
         }
       },
       () => { setGeoStatus('denied'); loadAllBangkok(); },
@@ -118,34 +130,73 @@ export function VenueMap({
     );
   }, [geoMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Resolved values ──────────────────────────────────────────────────────
-  const markers = geoMode ? nearbyMarkers : externalMarkers!;
+  const nearbyMarkers = geoMode
+    ? (selectedCategory ? allMarkers.filter(m => m.categoryName === selectedCategory) : allMarkers)
+    : externalMarkers!;
+
+  const markers = nearbyMarkers;
   const mapCenter: [number, number] = center ?? BANGKOK_CENTER;
   const mapZoom = zoom ?? 11;
   const showPin = showCenterPin && markers.length > 0;
 
   return (
     <div className="relative h-full w-full">
-      {/* Status banner (geo mode only) */}
+      {/* Geo status banner */}
       {geoMode && geoStatus === 'loading' && (
-        <div className="pointer-events-none absolute inset-x-0 top-14 z-[1000] flex justify-center">
+        <div className="pointer-events-none absolute inset-x-0 top-16 z-[1000] flex justify-center">
           <span className="rounded-full bg-black/60 px-4 py-1 text-sm text-white backdrop-blur-sm">
             กำลังหาตำแหน่งของคุณ…
           </span>
         </div>
       )}
       {geoMode && geoStatus === 'denied' && (
-        <div className="pointer-events-none absolute inset-x-0 top-14 z-[1000] flex justify-center">
+        <div className="pointer-events-none absolute inset-x-0 top-16 z-[1000] flex justify-center">
           <span className="rounded-full bg-black/60 px-4 py-1 text-sm text-white backdrop-blur-sm">
             ไม่ได้รับอนุญาตใช้ตำแหน่ง — แสดง Bangkok ทั้งหมด
           </span>
         </div>
       )}
-      {geoMode && geoStatus === 'granted' && nearbyMarkers.length === 0 && (
-        <div className="pointer-events-none absolute inset-x-0 top-14 z-[1000] flex justify-center">
+      {geoMode && geoStatus === 'granted' && allMarkers.length === 0 && (
+        <div className="pointer-events-none absolute inset-x-0 top-16 z-[1000] flex justify-center">
           <span className="rounded-full bg-black/60 px-4 py-1 text-sm text-white backdrop-blur-sm">
             ไม่พบร้านในรัศมี 3 กม.
           </span>
+        </div>
+      )}
+
+      {/* Category filter chips */}
+      {geoMode && (
+        <div className="absolute inset-x-0 top-20 z-[1000] flex justify-center px-4 pointer-events-auto">
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide max-w-full">
+            {CATEGORIES.map(({ value, label }) => (
+              <button
+                key={label}
+                onClick={() => setSelectedCategory(value)}
+                className={`flex-shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                  selectedCategory === value
+                    ? 'bg-accent text-background'
+                    : 'bg-black/60 text-white backdrop-blur-sm hover:bg-black/80'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Creator FAB */}
+      {canCreate && geoMode && (
+        <div className="absolute bottom-48 right-4 z-[1000]">
+          <Link
+            href="/venues/add"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-accent text-background shadow-lg hover:opacity-90 transition-opacity"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </Link>
         </div>
       )}
 
@@ -162,7 +213,6 @@ export function VenueMap({
 
         {geoMode && <MapController pos={userPos} />}
 
-        {/* User location dot */}
         {userPos && (
           <CircleMarker
             center={userPos}
@@ -186,6 +236,59 @@ export function VenueMap({
           </div>
         </div>
       ) : null}
+
+      {/* Venue list panel */}
+      {geoMode && (
+        <div
+          className={`absolute bottom-0 inset-x-0 z-[1000] bg-surface rounded-t-2xl shadow-2xl transition-all duration-300 ${
+            listOpen ? 'h-[45%]' : 'h-14'
+          }`}
+        >
+          {/* Handle + toggle */}
+          <button
+            onClick={() => setListOpen(o => !o)}
+            className="w-full flex flex-col items-center pt-2 pb-1"
+          >
+            <div className="w-10 h-1 rounded-full bg-white/20 mb-2" />
+            <span className="text-sm text-muted">
+              {markers.length} venue{markers.length !== 1 ? 's' : ''}{' '}
+              {geoStatus === 'granted' ? 'nearby' : 'found'}
+              {selectedCategory ? ` · ${CATEGORIES.find(c => c.value === selectedCategory)?.label}` : ''}
+              {' '}{listOpen ? '▾' : '▴'}
+            </span>
+          </button>
+
+          {listOpen && (
+            <div className="overflow-y-auto h-[calc(100%-3.5rem)] px-4 pb-4">
+              {markers.length === 0 ? (
+                <p className="text-center text-sm text-muted mt-8">No venues found.</p>
+              ) : (
+                markers.map((m) => (
+                  <Link
+                    key={m.id}
+                    href={`/venues/${m.id}`}
+                    className="flex items-center gap-3 py-3 border-b border-border last:border-0 hover:opacity-80"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{m.name}</p>
+                      {m.categoryName && (
+                        <p className="text-xs text-muted capitalize">
+                          {m.categoryName.replace('_', ' ').toLowerCase()}
+                        </p>
+                      )}
+                    </div>
+                    {m.rating && m.rating.reviewCount > 0 && (
+                      <span className="text-xs text-muted flex-shrink-0">
+                        ★ {m.rating.overall.toFixed(1)}
+                      </span>
+                    )}
+                  </Link>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
