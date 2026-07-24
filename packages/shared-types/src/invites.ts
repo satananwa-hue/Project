@@ -27,3 +27,15 @@ export interface TopInviterDto {
   displayName: string;
   directInvites: number;
 }
+
+export interface InviteStatsDto {
+  remainingInvites: number;
+  totalSent: number;
+  totalRedeemed: number;
+  invites: Array<{
+    id: string;
+    code: string;
+    status: string;
+    invitee: { displayName: string } | null;
+  }>;
+}
