@@ -1,13 +1,14 @@
 import { redirect } from 'next/navigation';
-import { getSessionToken } from '@/lib/session';
+import { getSessionToken, getSession } from '@/lib/session';
 import type { InviteDto } from '@chiwitrakmaochaaowelarakkhrai/shared-types';
 import { CopyButtons } from './copy-buttons';
+import { GenerateButton } from './generate-button';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api';
 
 export default async function MyInvitesPage() {
-  const token = await getSessionToken();
-  if (!token) redirect('/login');
+  const [token, session] = await Promise.all([getSessionToken(), getSession()]);
+  if (!token || !session) redirect('/login');
 
   const res = await fetch(`${API_BASE_URL}/invites/mine`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -18,16 +19,22 @@ export default async function MyInvitesPage() {
   const invites = (await res.json()) as InviteDto[];
   const remaining = invites.filter((i) => !i.usedAt).length;
   const redeemed = invites.filter((i) => i.usedAt).length;
+  const isAdmin = session.role === 'ADMINISTRATOR';
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
-      <h1 className="mb-2 text-3xl font-semibold tracking-tight">My Invites</h1>
-      <p className="mb-8 text-muted">
-        {remaining} remaining · {invites.length} sent · {redeemed} joined
-      </p>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="mb-1 text-3xl font-semibold tracking-tight">My Invites</h1>
+          <p className="text-muted">
+            {remaining} remaining · {invites.length} sent · {redeemed} joined
+          </p>
+        </div>
+        {isAdmin && <GenerateButton />}
+      </div>
 
       {invites.length === 0 ? (
-        <p className="text-muted">You haven&apos;t received any invite codes yet.</p>
+        <p className="text-muted">No invite codes yet.{isAdmin ? ' Generate some above.' : ''}</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {invites.map((invite) => {
@@ -43,8 +50,10 @@ export default async function MyInvitesPage() {
                   <p className={`font-mono text-sm tracking-widest ${used ? 'line-through text-muted' : 'text-accent'}`}>
                     {invite.code}
                   </p>
-                  {used && (
-                    <p className="text-xs text-muted mt-0.5">Used {invite.usedAt ? new Date(invite.usedAt).toLocaleDateString() : ''}</p>
+                  {used && invite.usedAt && (
+                    <p className="mt-0.5 text-xs text-muted">
+                      Used {new Date(invite.usedAt).toLocaleDateString()}
+                    </p>
                   )}
                 </div>
                 {used ? (
