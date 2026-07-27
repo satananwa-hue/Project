@@ -2,90 +2,81 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+
+const LocationPicker = dynamic(() => import('./location-picker'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[280px] w-full rounded-xl border border-border bg-surface-raised animate-pulse" />
+  ),
+});
 
 const CATEGORIES = [
-  { value: 'BAR', label: 'Bar' },
-  { value: 'CLUB', label: 'Club' },
-  { value: 'ROOFTOP', label: 'Rooftop' },
+  { value: 'BAR',        label: 'Bar' },
+  { value: 'CLUB',       label: 'Club' },
+  { value: 'ROOFTOP',    label: 'Rooftop' },
   { value: 'LIVE_MUSIC', label: 'Live Music' },
-  { value: 'LOUNGE', label: 'Lounge' },
-  { value: 'OTHER', label: 'Other' },
+  { value: 'LOUNGE',     label: 'Lounge' },
+  { value: 'OTHER',      label: 'Other' },
 ];
 
 const PRICE_RANGES = [
-  { value: 'BUDGET', label: '฿ Budget' },
+  { value: 'BUDGET',   label: '฿ Budget' },
   { value: 'MODERATE', label: '฿฿ Moderate' },
-  { value: 'UPSCALE', label: '฿฿฿ Upscale' },
-  { value: 'LUXURY', label: '฿฿฿฿ Luxury' },
+  { value: 'UPSCALE',  label: '฿฿฿ Upscale' },
+  { value: 'LUXURY',   label: '฿฿฿฿ Luxury' },
 ];
-
-const GEO_KEY = 'f3199d5697904c388c2af578a23e2844';
-
-type GeoStatus = 'idle' | 'loading' | 'found' | 'error';
 
 export function AddVenueClient() {
   const router = useRouter();
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState('OTHER');
-  const [address, setAddress] = useState('');
-  const [lat, setLat] = useState<number | null>(null);
-  const [lng, setLng] = useState<number | null>(null);
-  const [geoStatus, setGeoStatus] = useState<GeoStatus>('idle');
-  const [resolvedAddress, setResolvedAddress] = useState('');
+  const [name, setName]               = useState('');
+  const [category, setCategory]       = useState('OTHER');
+  const [pin, setPin]                 = useState<[number, number] | null>(null);
+  const [address, setAddress]         = useState('');
   const [coverCharge, setCoverCharge] = useState('');
-  const [priceRange, setPriceRange] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [priceRange, setPriceRange]   = useState('');
+  const [centerTrigger, setCenterTrigger] = useState(0);
+  const [submitting, setSubmitting]   = useState(false);
+  const [error, setError]             = useState('');
+  const [success, setSuccess]         = useState(false);
 
-  async function geocode() {
-    if (!address.trim()) return;
-    setGeoStatus('loading');
-    try {
-      const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(address)}&lang=en&limit=1&filter=countrycode:th&apiKey=${GEO_KEY}`;
-      const res = await fetch(url);
-      const data = (await res.json()) as { features?: { geometry: { coordinates: [number, number] }; properties: { formatted?: string } }[] };
-      const feature = data.features?.[0];
-      if (!feature) { setGeoStatus('error'); return; }
-      const [lngVal, latVal] = feature.geometry.coordinates;
-      setLat(latVal);
-      setLng(lngVal);
-      setResolvedAddress(feature.properties.formatted ?? address);
-      setGeoStatus('found');
-    } catch {
-      setGeoStatus('error');
-    }
+  function handlePin(lat: number, lng: number, reverseAddress: string) {
+    setPin([lat, lng]);
+    if (reverseAddress) setAddress(reverseAddress);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !address.trim() || lat === null || lng === null) {
-      setError('Please fill in the name, address, and tap "Find" to set the map pin before submitting.');
-      return;
-    }
+    if (!name.trim()) { setError('Please enter a venue name.'); return; }
+    if (!pin)         { setError('Tap the map to place the venue pin first.'); return; }
+    if (!address.trim()) { setError('Please confirm or type the address.'); return; }
+
     setSubmitting(true);
     setError('');
     try {
       const body: Record<string, unknown> = {
-        name: name.trim(),
+        name:        name.trim(),
         category,
-        address: resolvedAddress || address.trim(),
-        lat,
-        lng,
+        address:     address.trim(),
+        lat:         pin[0],
+        lng:         pin[1],
         isPublished: false,
       };
       if (coverCharge) body.coverCharge = parseInt(coverCharge, 10);
-      if (priceRange) body.priceRange = priceRange;
+      if (priceRange)  body.priceRange  = priceRange;
 
       const res = await fetch('/api/venues', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body:    JSON.stringify(body),
       });
+
       if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { message?: string };
-        throw new Error(Array.isArray(err.message) ? (err.message as string[]).join(', ') : (err.message ?? 'Failed to submit venue'));
+        const err = (await res.json().catch(() => ({}))) as { message?: string | string[] };
+        const msg = Array.isArray(err.message) ? err.message.join(', ') : (err.message ?? 'Failed to submit');
+        throw new Error(msg);
       }
+
       setSuccess(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.');
@@ -100,7 +91,7 @@ export function AddVenueClient() {
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/20 text-3xl">✓</div>
         <h2 className="text-xl font-semibold">Venue submitted!</h2>
         <p className="max-w-xs text-sm text-muted">
-          Your suggestion will be reviewed by our team before appearing on the map. Thank you!
+          Your suggestion will be reviewed before appearing on the map. Thank you!
         </p>
         <button
           onClick={() => router.push('/')}
@@ -114,6 +105,7 @@ export function AddVenueClient() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+
       {/* Name */}
       <div>
         <label className="mb-1.5 block text-sm font-medium">Venue Name *</label>
@@ -140,45 +132,36 @@ export function AddVenueClient() {
         </select>
       </div>
 
-      {/* Address + geocode */}
+      {/* Map pin picker */}
       <div>
-        <label className="mb-1.5 block text-sm font-medium">Address *</label>
-        <div className="flex gap-2">
-          <input
-            value={address}
-            onChange={e => {
-              setAddress(e.target.value);
-              setGeoStatus('idle');
-              setLat(null);
-              setLng(null);
-              setResolvedAddress('');
-            }}
-            placeholder="e.g. Lebua at State Tower, Silom Rd"
-            required
-            className="min-w-0 flex-1 rounded-xl border border-border bg-surface px-4 py-3 text-sm outline-none focus:border-accent transition-colors"
-          />
+        <div className="mb-1.5 flex items-center justify-between">
+          <label className="text-sm font-medium">
+            Pin Location *{' '}
+            {pin
+              ? <span className="font-normal text-green-400 text-xs">✓ Pinned ({pin[0].toFixed(5)}, {pin[1].toFixed(5)})</span>
+              : <span className="font-normal text-muted text-xs">Tap the map to place a pin</span>}
+          </label>
           <button
             type="button"
-            onClick={geocode}
-            disabled={!address.trim() || geoStatus === 'loading'}
-            className="flex-shrink-0 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm font-semibold text-accent hover:bg-accent/20 transition-colors disabled:opacity-40"
+            onClick={() => setCenterTrigger(t => t + 1)}
+            className="text-xs text-accent hover:text-accent/70 transition-colors"
           >
-            {geoStatus === 'loading' ? '…' : 'Find'}
+            Use my location
           </button>
         </div>
-        {geoStatus === 'found' && (
-          <p className="mt-2 text-xs text-green-400">
-            ✓ {resolvedAddress} ({lat?.toFixed(5)}, {lng?.toFixed(5)})
-          </p>
-        )}
-        {geoStatus === 'error' && (
-          <p className="mt-2 text-xs text-red-400">
-            Could not find that address — try being more specific (e.g. add the street or district).
-          </p>
-        )}
-        {geoStatus === 'idle' && (
-          <p className="mt-2 text-xs text-muted">Enter the address then tap &quot;Find&quot; to pin it on the map.</p>
-        )}
+        <LocationPicker pin={pin} onPin={handlePin} centerOnUserTrigger={centerTrigger} />
+      </div>
+
+      {/* Address (auto-filled by reverse-geocode, editable) */}
+      <div>
+        <label className="mb-1.5 block text-sm font-medium">Address *</label>
+        <input
+          value={address}
+          onChange={e => setAddress(e.target.value)}
+          placeholder="Auto-filled when you pin the map"
+          className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm outline-none focus:border-accent transition-colors"
+        />
+        <p className="mt-1.5 text-xs text-muted">Auto-filled from your pin — edit if needed.</p>
       </div>
 
       {/* Optional fields */}
@@ -217,7 +200,7 @@ export function AddVenueClient() {
 
       <button
         type="submit"
-        disabled={submitting || lat === null}
+        disabled={submitting || !pin}
         className="w-full rounded-xl bg-accent py-4 text-sm font-bold text-white hover:bg-accent/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
       >
         {submitting ? 'Submitting…' : 'Submit Venue'}
