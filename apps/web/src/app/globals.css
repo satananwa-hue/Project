@@ -1,40 +1,46 @@
 @import "tailwindcss";
 
 /*
-  Dark mode first: ChiWitRakMaoChaAoWelaRakKhrai is a nightlife product, so the dark palette is the
-  default regardless of system preference. Light mode is a deliberate override,
-  not the fallback.
+  Dark mode first: nightlife product, dark palette is default.
+  Violet accent palette — matches the Stitch/Material Design 3 design direction.
 */
 :root {
-  --background: #0a0a0d;
-  --surface: #131318;
-  --surface-raised: #1b1b22;
-  --foreground: #f4f4f6;
-  --muted: #9a9aa5;
-  --border: #26262f;
-  --accent: #d4a94f;
-  --accent-foreground: #14140f;
+  --background:    #101415;
+  --surface:       #1d2022;
+  --surface-raised:#272a2c;
+  --foreground:    #e0e3e5;
+  --muted:         #9a9aa5;
+  --border:        #494454;
+  --accent:        #8B5CF6;
+  --accent-dim:    rgba(139, 92, 246, 0.15);
+  --accent-foreground: #ffffff;
+  --glass-bg:      rgba(16, 20, 21, 0.75);
+  --glass-border:  rgba(255, 255, 255, 0.06);
 }
 
 :root[data-theme="light"] {
-  --background: #fafafa;
-  --surface: #ffffff;
-  --surface-raised: #f2f2f4;
-  --foreground: #16161a;
-  --muted: #6b6b76;
-  --border: #e4e4e8;
-  --accent: #b8862f;
+  --background:    #fafafa;
+  --surface:       #ffffff;
+  --surface-raised:#f2f2f4;
+  --foreground:    #16161a;
+  --muted:         #6b6b76;
+  --border:        #e4e4e8;
+  --accent:        #7C3AED;
+  --accent-dim:    rgba(124, 58, 237, 0.12);
   --accent-foreground: #ffffff;
+  --glass-bg:      rgba(255, 255, 255, 0.8);
+  --glass-border:  rgba(0, 0, 0, 0.06);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-surface: var(--surface);
-  --color-surface-raised: var(--surface-raised);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-border: var(--border);
-  --color-accent: var(--accent);
+  --color-background:    var(--background);
+  --color-surface:       var(--surface);
+  --color-surface-raised:var(--surface-raised);
+  --color-foreground:    var(--foreground);
+  --color-muted:         var(--muted);
+  --color-border:        var(--border);
+  --color-accent:        var(--accent);
+  --color-accent-dim:    var(--accent-dim);
   --color-accent-foreground: var(--accent-foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -44,3 +50,31 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* ── Glassmorphism panel ───────────────────────────────── */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid var(--glass-border);
+}
+
+/* ── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar          { width: 4px; }
+::-webkit-scrollbar-track    { background: transparent; }
+::-webkit-scrollbar-thumb    { background: var(--border); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* ── Animations ────────────────────────────────────────── */
+@keyframes pulse-violet {
+  0%   { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(139,92,246,.7); }
+  70%  { transform: scale(1);    box-shadow: 0 0 0 8px rgba(139,92,246,0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(139,92,246,0); }
+}
+.live-pulse { animation: pulse-violet 2s infinite; }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fade-up 0.25s ease both; }

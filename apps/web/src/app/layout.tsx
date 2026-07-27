@@ -17,8 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-
-const siteName = "ChiWitRakMaoChaAoWelaRakKhrai";
+const siteName = "NightCheck";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -28,20 +27,12 @@ export const metadata: Metadata = {
   },
   description:
     "Discover bars and clubs in Bangkok through reviews from a trusted, invite-only community of reviewers.",
-  openGraph: {
-    siteName,
-    type: "website",
-  },
+  openGraph: { siteName, type: "website" },
 };
 
 export default async function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  // Public users must never be able to tell the reviewer community exists -
-  // logged out, this renders nothing more than a plain "Login" link; logged
-  // in, the sidebar replaces it entirely. No "Become a Reviewer" marketing CTA.
+}: Readonly<{ children: React.ReactNode }>) {
   const profile = await getSession();
 
   return (
@@ -49,18 +40,28 @@ export default async function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
-        <header className="border-b border-border">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-            <Link href="/" className="text-lg font-semibold tracking-tight">
-              {siteName}
-            </Link>
-            <nav className="flex items-center gap-6 text-sm text-muted">
-              <Link href="/venues" className="hover:text-foreground">
-                Venues
+      <body className="h-full flex flex-col bg-background text-foreground">
+        {/* ── Top navigation ─────────────────────────────── */}
+        <header className="flex-shrink-0 border-b border-white/5 bg-background/80 backdrop-blur-xl z-50">
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
+            {/* Brand */}
+            <div className="flex items-center gap-7">
+              <Link href="/" className="text-lg font-bold tracking-tight text-accent">
+                {siteName}
               </Link>
+              <nav className="hidden md:flex items-center gap-6 text-xs font-bold tracking-widest uppercase text-muted">
+                <Link href="/" className="hover:text-foreground transition-colors">Discovery</Link>
+                <Link href="/venues" className="hover:text-foreground transition-colors">Venues</Link>
+              </nav>
+            </div>
+
+            {/* Right actions */}
+            <nav className="flex items-center gap-3">
               {!profile && (
-                <Link href="/login" className="hover:text-foreground">
+                <Link
+                  href="/login"
+                  className="text-sm text-muted hover:text-foreground transition-colors"
+                >
                   Login
                 </Link>
               )}
@@ -73,10 +74,43 @@ export default async function RootLayout({
             </nav>
           </div>
         </header>
-        <main className="flex-1">{children}</main>
-        <footer className="border-t border-border py-8 text-center text-sm text-muted">
+
+        {/* ── Page content ───────────────────────────────── */}
+        <main className="flex-1 min-h-0">{children}</main>
+
+        {/* ── Mobile bottom nav (hidden on md+) ──────────── */}
+        <nav className="md:hidden flex-shrink-0 border-t border-white/5 bg-background/90 backdrop-blur-xl z-50">
+          <div className="flex justify-around items-center h-16 px-4">
+            <Link href="/" className="flex flex-col items-center gap-0.5 text-accent">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              <span className="text-[9px] font-bold uppercase tracking-widest">Explore</span>
+            </Link>
+            <Link href="/venues" className="flex flex-col items-center gap-0.5 text-muted hover:text-foreground transition-colors">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+              <span className="text-[9px] font-bold uppercase tracking-widest">Venues</span>
+            </Link>
+            {profile ? (
+              <button
+                className="flex flex-col items-center gap-0.5 text-muted hover:text-foreground transition-colors"
+                onClick={() => window.dispatchEvent(new CustomEvent('open-profile-sheet'))}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.58-7 8-7s8 3 8 7"/></svg>
+                <span className="text-[9px] font-bold uppercase tracking-widest">Profile</span>
+              </button>
+            ) : (
+              <Link href="/login" className="flex flex-col items-center gap-0.5 text-muted hover:text-foreground transition-colors">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.58-7 8-7s8 3 8 7"/></svg>
+                <span className="text-[9px] font-bold uppercase tracking-widest">Login</span>
+              </Link>
+            )}
+          </div>
+        </nav>
+
+        {/* ── Footer (non-home pages only, hidden on mobile) ─ */}
+        <footer className="hidden md:block flex-shrink-0 border-t border-white/5 py-6 text-center text-xs text-muted/60">
           © {new Date().getFullYear()} {siteName}. Bangkok nightlife, reviewed by people who were actually there.
         </footer>
+
         {profile && <ReviewerProfileSheet profile={profile} />}
       </body>
     </html>
