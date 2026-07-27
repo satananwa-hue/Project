@@ -52,6 +52,9 @@ export default async function RootLayout({
               <nav className="hidden md:flex items-center gap-6 text-xs font-bold tracking-widest uppercase text-muted">
                 <Link href="/" className="hover:text-foreground transition-colors">Discovery</Link>
                 <Link href="/venues" className="hover:text-foreground transition-colors">Venues</Link>
+                {profile?.role === 'ADMINISTRATOR' && (
+                  <Link href="/admin" className="text-accent hover:text-accent/80 transition-colors">Admin</Link>
+                )}
               </nav>
             </div>
 
@@ -69,6 +72,7 @@ export default async function RootLayout({
                 <ProfileAvatarButton
                   level={profile.reputationLevel}
                   levelName={REPUTATION_LEVELS[profile.reputationLevel] ?? "New Explorer"}
+                  displayName={profile.displayName}
                 />
               )}
             </nav>

@@ -27,7 +27,15 @@ interface InviteRow {
 }
 
 // Button rendered inside the header nav — outside Leaflet's event scope
-export function ProfileAvatarButton({ level, levelName }: { level: number; levelName: string }) {
+export function ProfileAvatarButton({
+  level,
+  levelName,
+  displayName,
+}: {
+  level: number;
+  levelName: string;
+  displayName?: string;
+}) {
   function open() {
     window.dispatchEvent(new CustomEvent("open-profile-sheet"));
   }
@@ -35,10 +43,17 @@ export function ProfileAvatarButton({ level, levelName }: { level: number; level
     <button
       onClick={open}
       aria-label="Open profile"
-      className="h-9 w-9 overflow-hidden rounded-full border-2 border-accent/50 bg-surface hover:border-accent transition-colors shadow-md flex-shrink-0"
+      className="flex items-center gap-2 rounded-full border border-accent/30 bg-surface/60 px-2 py-1 hover:border-accent/60 hover:bg-surface transition-colors shadow-sm"
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={`/levels/level_${level}.png`} alt={levelName} className="h-full w-full object-cover" />
+      <div className="h-7 w-7 overflow-hidden rounded-full border border-accent/50 flex-shrink-0">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={`/levels/level_${level}.png`} alt={levelName} className="h-full w-full object-cover" />
+      </div>
+      {displayName && (
+        <span className="text-xs font-semibold text-foreground/90 pr-1 max-w-[120px] truncate hidden sm:block">
+          {displayName}
+        </span>
+      )}
     </button>
   );
 }
