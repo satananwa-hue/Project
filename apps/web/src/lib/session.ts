@@ -17,15 +17,14 @@ export async function getSession(): Promise<UserProfile | null> {
   if (!token) return null;
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
-
-    const res = await fetch(`${API_BASE_URL}/auth/me`, {
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("session_timeout")), 5000),
+    );
+    const fetchPromise = fetch(`${API_BASE_URL}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
-      signal: controller.signal,
     });
-    clearTimeout(timeout);
+    const res = await Promise.race([fetchPromise, timeoutPromise]);
 
     if (!res.ok) return null;
     const dto = (await res.json()) as AccountDto;

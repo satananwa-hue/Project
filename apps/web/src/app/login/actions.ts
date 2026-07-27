@@ -20,11 +20,25 @@ async function readErrorMessage(res: Response): Promise<string> {
 }
 
 export async function loginAction(email: string, password: string): Promise<ActionResult> {
-  const res = await fetch(`${API_BASE_URL}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
+  let res: Response;
+  try {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("timeout")), 8000),
+    );
+    res = await Promise.race([
+      fetch(`${API_BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      }),
+      timeout,
+    ]);
+  } catch (e) {
+    const msg = e instanceof Error && e.message === "timeout"
+      ? "The server is starting up — please wait 20 seconds and try again."
+      : "Could not reach the server. Please try again.";
+    return { ok: false, error: msg };
+  }
 
   if (!res.ok) {
     return { ok: false, error: await readErrorMessage(res) };
