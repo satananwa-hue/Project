@@ -3,7 +3,7 @@ import { VenueMap } from "@/components/venue-map-loader";
 
 export default async function HomePage() {
   const session = await getSession();
-  const canCreate = session?.role === 'CREATOR' || session?.role === 'ADMINISTRATOR';
+  const canCreate = !!session;
   const isLoggedIn = !!session;
 
   return (
