@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { getSession } from "@/lib/session";
-import { ProfileAvatarButton, ReviewerProfileSheet } from "@/components/reviewer-sidebar";
+import { ProfileAvatarButton, ReviewerProfileSheet, MobileProfileTrigger } from "@/components/reviewer-sidebar";
 import { REPUTATION_LEVELS } from "@chiwitrakmaochaaowelarakkhrai/shared-types";
 import "./globals.css";
 
@@ -94,13 +94,10 @@ export default async function RootLayout({
               <span className="text-[9px] font-bold uppercase tracking-widest">Venues</span>
             </Link>
             {profile ? (
-              <button
-                className="flex flex-col items-center gap-0.5 text-muted hover:text-foreground transition-colors"
-                onClick={() => window.dispatchEvent(new CustomEvent('open-profile-sheet'))}
-              >
+              <MobileProfileTrigger>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.58-7 8-7s8 3 8 7"/></svg>
                 <span className="text-[9px] font-bold uppercase tracking-widest">Profile</span>
-              </button>
+              </MobileProfileTrigger>
             ) : (
               <Link href="/login" className="flex flex-col items-center gap-0.5 text-muted hover:text-foreground transition-colors">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.58-7 8-7s8 3 8 7"/></svg>

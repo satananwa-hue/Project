@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { logoutAction } from "@/app/login/actions";
@@ -24,6 +24,21 @@ interface InviteRow {
   id: string;
   code: string;
   usedAt: string | null;
+}
+
+// Tiny trigger for the mobile bottom-nav — must be a Client Component so onClick works
+export function MobileProfileTrigger({ children }: { children: React.ReactNode }) {
+  function open() {
+    window.dispatchEvent(new CustomEvent("open-profile-sheet"));
+  }
+  return (
+    <button
+      onClick={open}
+      className="flex flex-col items-center gap-0.5 text-muted hover:text-foreground transition-colors"
+    >
+      {children}
+    </button>
+  );
 }
 
 // Button rendered inside the header nav — outside Leaflet's event scope
