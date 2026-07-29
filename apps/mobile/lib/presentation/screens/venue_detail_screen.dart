@@ -383,7 +383,7 @@ class _TagRow extends StatelessWidget {
   }
 }
 
-class _ReviewCard extends StatelessWidget {
+class _ReviewCard extends StatefulWidget {
   final ReviewSummary review;
   final bool canDelete;
   final Future<void> Function()? onDelete;
@@ -394,7 +394,14 @@ class _ReviewCard extends StatelessWidget {
     this.onDelete,
   });
 
-  Future<void> _handleDelete(BuildContext context) async {
+  @override
+  State<_ReviewCard> createState() => _ReviewCardState();
+}
+
+class _ReviewCardState extends State<_ReviewCard> {
+  bool _deleting = false;
+
+  Future<void> _handleDelete() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -416,15 +423,18 @@ class _ReviewCard extends StatelessWidget {
         ],
       ),
     );
-    if (confirmed != true || onDelete == null || !context.mounted) return;
+    if (confirmed != true || widget.onDelete == null || !mounted) return;
+    setState(() => _deleting = true);
     try {
-      await onDelete!();
+      await widget.onDelete!();
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
+        setState(() => _deleting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString().replaceFirst('Exception: ', '')),
             backgroundColor: Colors.red.shade800,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -433,7 +443,7 @@ class _ReviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initial = review.authorName.isNotEmpty ? review.authorName[0].toUpperCase() : '?';
+    final initial = widget.review.authorName.isNotEmpty ? widget.review.authorName[0].toUpperCase() : '?';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -444,10 +454,10 @@ class _ReviewCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              if (review.authorAvatarUrl != null)
+              if (widget.review.authorAvatarUrl != null)
                 CircleAvatar(
                   radius: 16,
-                  backgroundImage: CachedNetworkImageProvider(review.authorAvatarUrl!),
+                  backgroundImage: CachedNetworkImageProvider(widget.review.authorAvatarUrl!),
                   backgroundColor: kAccentColor.withValues(alpha: 0.3),
                 )
               else
@@ -461,8 +471,8 @@ class _ReviewCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(review.authorName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                    Text(_relativeDate(review.createdAt), style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 11)),
+                    Text(widget.review.authorName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    Text(_relativeDate(widget.review.createdAt), style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 11)),
                   ],
                 ),
               ),
@@ -470,30 +480,44 @@ class _ReviewCard extends StatelessWidget {
                 children: List.generate(5, (i) => Icon(
                   Icons.star,
                   size: 12,
-                  color: i < review.rating ? kAccentColor : Colors.white24,
+                  color: i < widget.review.rating ? kAccentColor : Colors.white24,
                 )),
               ),
-              if (canDelete) ...[
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () => _handleDelete(context),
-                  child: Icon(
-                    Icons.delete_outline,
-                    size: 16,
-                    color: Colors.white.withValues(alpha: 0.3),
-                  ),
+              if (widget.canDelete) ...[
+                const SizedBox(width: 4),
+                SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: _deleting
+                      ? const Center(
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 1.5, color: Colors.white38),
+                          ),
+                        )
+                      : IconButton(
+                          onPressed: _handleDelete,
+                          padding: EdgeInsets.zero,
+                          icon: Icon(
+                            Icons.delete_outline,
+                            size: 18,
+                            color: Colors.white.withValues(alpha: 0.55),
+                          ),
+                          tooltip: 'Delete review',
+                        ),
                 ),
               ],
             ],
           ),
           const SizedBox(height: 10),
-          Text(review.textBody, style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 14)),
-          if (review.tags.isNotEmpty) ...[
+          Text(widget.review.textBody, style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 14)),
+          if (widget.review.tags.isNotEmpty) ...[
             const SizedBox(height: 8),
             Wrap(
               spacing: 6,
               runSpacing: 4,
-              children: review.tags
+              children: widget.review.tags
                   .map((t) => Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(

@@ -87,7 +87,39 @@ def valid(row):
     return bool(name) and name not in ("(ไม่มีชื่อ)", "(no name)")
 
 rows = [r for r in rows if valid(r)]
-print(f"After filter: {len(rows)}\n")
+print(f"After filter: {len(rows)}")
+
+# ── Fetch existing venues to skip duplicates ──────────────────────────────────
+print("Fetching existing venues to skip duplicates …")
+existing_coords = set()
+try:
+    # Use a wide search to fetch all published venues
+    ex_res = requests.get(
+        f"{API}/venues",
+        params={"pageSize": "9999", "publishedOnly": "true"},
+        timeout=30
+    )
+    if ex_res.status_code == 200:
+        ex_body = ex_res.json()
+        ex_items = ex_body.get("items", [])
+        for v in ex_items:
+            lat_r = round(float(v["lat"]), 4)
+            lng_r = round(float(v["lng"]), 4)
+            existing_coords.add((lat_r, lng_r))
+        print(f"  {len(ex_items)} existing venues loaded ({len(existing_coords)} unique coords)")
+    else:
+        print(f"  [WARN] Could not fetch existing venues ({ex_res.status_code}), skipping dedup")
+except Exception as e:
+    print(f"  [WARN] Dedup fetch failed: {e}")
+
+def is_duplicate(lat, lng):
+    # Round to 4 decimal places (~11m precision) for matching
+    return (round(lat, 4), round(lng, 4)) in existing_coords
+
+# Filter out duplicates
+before = len(rows)
+rows = [r for r in rows if not is_duplicate(float(r["lat"]), float(r["lng"]))]
+print(f"After dedup: {len(rows)}  (skipped {before - len(rows)} already in DB)\n")
 
 # ── Import ───────────────────────────────────────────────────────────────────
 ok = err = 0
@@ -118,8 +150,8 @@ for i, row in enumerate(rows, 1):
                           data=json.dumps(payload), timeout=15)
         if r.status_code in (200, 201):
             ok += 1
-            if i % 25 == 0:
-                print(f"  {i}/{len(rows)} … ({ok} ok, {err} err)")
+            if i % 50 == 0:
+                print(f"  {i}/{len(rows)} ({ok} ok, {err} err)")
         else:
             err += 1
             print(f"  ✗ [{r.status_code}] {payload['name']}: {r.text[:120]}")
@@ -127,7 +159,7 @@ for i, row in enumerate(rows, 1):
         err += 1
         print(f"  ✗ {payload['name']}: {e}")
 
-    time.sleep(0.05)
+    time.sleep(1.0)   # 1 req/s — Render free tier limit
 
 print(f"\n{'[DRY RUN] ' if args.dry else ''}Done:")
 print(f"  ✓ {ok} imported")

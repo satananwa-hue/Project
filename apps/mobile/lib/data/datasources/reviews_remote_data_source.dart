@@ -57,8 +57,12 @@ class ReviewsRemoteDataSource {
 
     if (res.statusCode == 204) return;
 
-    final body = jsonDecode(res.body) as Map<String, dynamic>;
-    throw Exception(body['message'] ?? 'Failed to delete review (${res.statusCode})');
+    String? message;
+    try {
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      message = body['message'] as String?;
+    } catch (_) {}
+    throw Exception(message ?? 'Failed to delete review (${res.statusCode})');
   }
 
   Future<void> claimSocialShare({

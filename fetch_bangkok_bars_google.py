@@ -38,10 +38,9 @@ if not API_KEY:
 LAT_MIN, LAT_MAX = 13.35, 14.15
 LNG_MIN, LNG_MAX = 100.10, 101.10
 
-# Grid 20×20 = 400 cells × 2 types = 800 requests (~$28 at Places API rates)
-# Smaller cells = fewer venues per cell = less likely to cap at the 20-result limit
-GRID_N = 20
-SEARCH_RADIUS = 2500   # metres
+# Grid 10×10 = 100 cells × 2 types = 200 requests (~$6 at Places API rates)
+GRID_N = 10
+SEARCH_RADIUS = 4000   # metres — tighter radius for denser grid reduces overlap
 
 # Place types we want (Google's type names)
 INCLUDE_TYPES = ["bar", "night_club"]
@@ -96,8 +95,9 @@ def search_nearby(lat, lng, radius, place_type):
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 def main():
+    req_count = GRID_N * GRID_N * len(INCLUDE_TYPES)
     print(f"Bangkok grid {GRID_N}×{GRID_N} × {len(INCLUDE_TYPES)} types = "
-          f"{GRID_N*GRID_N*len(INCLUDE_TYPES)} requests\n")
+          f"{req_count} requests  (~{req_count}s ≈ {req_count//60}min)\n")
 
     all_places = {}  # id → dict  (deduplication by Google place ID)
 
@@ -119,7 +119,7 @@ def main():
                 except Exception as e:
                     print(f"  grid ({i},{j}) {ptype}: ERROR {e}")
 
-                time.sleep(0.4)    # ~2.5 req/s — well within 600 QPM limit
+                time.sleep(1.0)    # 1 req/s — safe rate to avoid 429
 
     print(f"\nTotal unique places: {len(all_places)}")
 
