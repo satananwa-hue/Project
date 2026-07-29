@@ -60,7 +60,7 @@ export function AddVenueClient() {
         address:     address.trim(),
         lat:         pin[0],
         lng:         pin[1],
-        isPublished: false,
+        isPublished: true,
       };
       if (coverCharge) body.coverCharge = parseInt(coverCharge, 10);
       if (priceRange)  body.priceRange  = priceRange;

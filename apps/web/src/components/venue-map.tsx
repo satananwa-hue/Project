@@ -61,17 +61,24 @@ function toMarker(v: VenueListItemDto): VenueMapMarker {
 }
 
 function createVenueIcon(hasReviews: boolean) {
+  const color  = hasReviews ? '#8B5CF6' : '#5a5468';
+  const dot    = hasReviews ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.5)';
+  const filter = hasReviews ? 'drop-shadow(0 0 6px rgba(139,92,246,0.85))' : 'none';
+  const w = hasReviews ? 24 : 18;
+  const h = hasReviews ? 32 : 24;
+  const cx = w / 2;
+  const cy = Math.round(h * 0.36);
+  const r  = Math.round(w * 0.19);
+  // teardrop: rounded top circle + pointed bottom
+  const svg = `<svg width="${w}" height="${h}" viewBox="0 0 24 32" xmlns="http://www.w3.org/2000/svg" style="filter:${filter}">
+    <path d="M12 1C6.5 1 2 5.5 2 11c0 7 10 20 10 20s10-13 10-20C22 5.5 17.5 1 12 1z" fill="${color}"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="${dot}"/>
+  </svg>`;
   return L.divIcon({
-    html: `<div style="
-      width:26px;height:26px;
-      background:${hasReviews ? '#8B5CF6' : '#494454'};
-      border:2px solid rgba(255,255,255,0.25);
-      border-radius:50%;
-      box-shadow:${hasReviews ? '0 0 14px rgba(139,92,246,0.75)' : 'none'};
-    "></div>`,
+    html: svg,
     className: '',
-    iconSize: [26, 26],
-    iconAnchor: [13, 13],
+    iconSize:   [w, h],
+    iconAnchor: [w / 2, h],
   });
 }
 
@@ -153,15 +160,13 @@ export function VenueMap({
     ? (selectedCategory ? allMarkers.filter(m => m.categoryName === selectedCategory) : allMarkers)
     : externalMarkers!;
 
-  const markers = isLoggedIn
-    ? baseMarkers
-    : baseMarkers.filter(m => m.rating !== undefined && m.rating.reviewCount > 0);
+  const markers = baseMarkers;
 
   const mapCenter: [number, number] = center ?? BANGKOK_CENTER;
   const mapZoom = zoom ?? 11;
   const showPin = showCenterPin && markers.length > 0;
 
-  const countLabel = `${markers.length} ${!isLoggedIn ? 'reviewed ' : ''}venue${markers.length !== 1 ? 's' : ''} ${isLoggedIn && geoStatus === 'granted' ? 'nearby' : 'in Bangkok'}`;
+  const countLabel = `${markers.length} venue${markers.length !== 1 ? 's' : ''} ${geoStatus === 'granted' ? 'nearby' : 'in Bangkok'}`;
 
   return (
     <div className="relative flex h-full w-full overflow-hidden">
