@@ -43,40 +43,19 @@ function calcPoints(overall: number, text: string, music: string, price: string,
 
 // Post-submit success panel
 function SuccessPanel({
-  venueName, venueId, slug, points, ratingPts, reviewPts, bonusPts, notesPts,
+  venueName, points, ratingPts, reviewPts, bonusPts, notesPts,
 }: {
-  venueName: string; venueId: string; slug: string;
+  venueName: string;
   points: number; ratingPts: number; reviewPts: number; bonusPts: number; notesPts: number;
 }) {
   const router = useRouter();
-  const [sharing, setSharing] = useState(false);
-  const [shareClaimed, setShareClaimed] = useState(false);
-  const [displayPts, setDisplayPts] = useState(points);
-
-  async function claimShare() {
-    if (shareClaimed || sharing) return;
-    setSharing(true);
-    try {
-      const res = await fetch(
-        `/api/claim-share?venueId=${venueId}&slug=${slug}`,
-        { method: "POST" }
-      );
-      if (res.ok) {
-        setShareClaimed(true);
-        setDisplayPts((p) => p + 5);
-      }
-    } finally {
-      setSharing(false);
-    }
-  }
-
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5">
       <div className="text-center">
         <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-accent/10">
           <span className="text-3xl text-accent">✓</span>
         </div>
-        <p className="text-3xl font-bold text-accent">+{displayPts} pts</p>
+        <p className="text-3xl font-bold text-accent">+{points} pts</p>
         <p className="mt-1 text-sm text-muted">Thanks for helping others discover their next spot!</p>
       </div>
 
@@ -86,20 +65,7 @@ function SuccessPanel({
         {reviewPts > 0 && <PointRow label="Review" pts={reviewPts} />}
         {bonusPts > 0 && <PointRow label="Bonus (200+ chars)" pts={bonusPts} />}
         {notesPts > 0 && <PointRow label="Extra notes" pts={notesPts} />}
-        {shareClaimed && <PointRow label="Social share" pts={5} />}
       </div>
-
-      {/* Social share */}
-      {!shareClaimed && (
-        <div className="rounded-lg border border-accent/20 bg-accent/5 p-4">
-          <p className="mb-1 text-sm font-medium">Share to earn +5 points</p>
-          <p className="mb-3 text-xs text-muted">Post your review to Instagram or TikTok story</p>
-          <div className="flex gap-2">
-            <ShareBtn label="Instagram" color="#E1306C" onClick={claimShare} loading={sharing} />
-            <ShareBtn label="TikTok" color="#69C9D0" onClick={claimShare} loading={sharing} />
-          </div>
-        </div>
-      )}
 
       <button
         onClick={() => router.push("/venues")}
@@ -120,19 +86,6 @@ function PointRow({ label, pts }: { label: string; pts: number }) {
   );
 }
 
-function ShareBtn({ label, color, onClick, loading }: { label: string; color: string; onClick: () => void; loading: boolean }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={loading}
-      className="flex-1 rounded-lg border py-2 text-sm font-medium disabled:opacity-50"
-      style={{ borderColor: color + "66", color }}
-    >
-      {loading ? "…" : label}
-    </button>
-  );
-}
 
 export function WriteReviewForm({
   venueId, slug, venueName = "",
@@ -190,8 +143,6 @@ export function WriteReviewForm({
     return (
       <SuccessPanel
         venueName={venueName}
-        venueId={venueId}
-        slug={slug}
         points={earnedPts.total}
         ratingPts={earnedPts.rating}
         reviewPts={earnedPts.review}

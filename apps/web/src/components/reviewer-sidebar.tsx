@@ -220,7 +220,7 @@ export function ReviewerProfileSheet({ profile }: { profile: UserProfile }) {
 
           {/* Nav links */}
           <div className="mt-1 flex flex-col">
-            <Link href="/reviews/new" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm hover:bg-surface-raised transition-colors">
+            <Link href="/venues" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm hover:bg-surface-raised transition-colors">
               <span>✏️</span><span>Write Review</span>
             </Link>
             <Link href="/invites/mine" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm hover:bg-surface-raised transition-colors">

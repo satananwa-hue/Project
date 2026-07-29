@@ -162,7 +162,7 @@ export class VenuesService {
         priceRange: input.priceRange ?? null,
         hoursJson: input.hoursJson ?? Prisma.DbNull,
         photos: input.photos ?? [],
-        isPublished: false,
+        isPublished: true,
         createdById: accountId,
         lastEditedById: accountId,
       },
