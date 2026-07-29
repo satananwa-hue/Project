@@ -2,9 +2,9 @@
 """
 Import Bangkok bars into the nightcheck database.
 
-Supports two CSV formats:
-  • bangkok_bars_google.csv   (from fetch_bangkok_bars_google.py)  — has 'category' column
-  • bangkok_bars_osm.csv      (from fetch_bangkok_bars.py)         — has 'type' column
+Deduplication strategy (layered):
+  1. Within CSV  — skip if a row with the same normalised name already processed
+  2. Against DB  — skip if an existing venue matches by name OR by coordinates (5dp ~1m)
 
 Usage:
   python scripts/import_bars.py                              # defaults to Google CSV
@@ -12,7 +12,7 @@ Usage:
   python scripts/import_bars.py --dry                        # preview without writing
 """
 
-import csv, json, sys, time, argparse, getpass
+import csv, json, sys, time, argparse, getpass, unicodedata, re
 
 try:
     import requests
@@ -55,7 +55,19 @@ if not token:
 headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 print("✓ Logged in\n")
 
-# ── Read CSV ─────────────────────────────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────────────────────
+def norm_name(name: str) -> str:
+    """Lowercase, strip accents, collapse whitespace, remove punctuation."""
+    name = name.lower().strip()
+    name = unicodedata.normalize("NFKD", name)
+    name = re.sub(r"[^\w\s]", "", name, flags=re.UNICODE)
+    name = re.sub(r"\s+", " ", name)
+    return name
+
+def coord_key(lat: float, lng: float) -> tuple:
+    return (round(lat, 5), round(lng, 5))   # ~1m precision
+
+# ── Read CSV ──────────────────────────────────────────────────────────────────
 try:
     with open(CSV_PATH, encoding="utf-8-sig") as f:
         rows = list(csv.DictReader(f))
@@ -65,19 +77,15 @@ except FileNotFoundError:
         "Run fetch_bangkok_bars_google.py first (needs GOOGLE_PLACES_KEY env var)"
     )
 
-print(f"Total rows : {len(rows)}")
+print(f"Total rows in CSV : {len(rows)}")
 
-# Determine format by checking which columns exist
-sample = rows[0] if rows else {}
-is_google_format = "category" in sample   # Google CSV has 'category'; OSM CSV has 'type'
+is_google_format = "category" in (rows[0] if rows else {})
 
 def get_category(row):
     if is_google_format:
         return row.get("category", "BAR").strip() or "BAR"
-    osm_type = row.get("type", "bar").strip().lower()
-    return OSM_TYPE_TO_CATEGORY.get(osm_type, "BAR")
+    return OSM_TYPE_TO_CATEGORY.get(row.get("type", "bar").strip().lower(), "BAR")
 
-# Remove rows without valid coords or names
 def valid(row):
     try:
         float(row.get("lat", "")); float(row.get("lng", ""))
@@ -87,41 +95,62 @@ def valid(row):
     return bool(name) and name not in ("(ไม่มีชื่อ)", "(no name)")
 
 rows = [r for r in rows if valid(r)]
-print(f"After filter: {len(rows)}")
+print(f"After validity    : {len(rows)}")
 
-# ── Fetch existing venues to skip duplicates ──────────────────────────────────
-print("Fetching existing venues to skip duplicates …")
-existing_coords = set()
+# ── Dedup within CSV (same normalised name) ───────────────────────────────────
+seen_names_csv = set()
+unique_rows = []
+for r in rows:
+    key = norm_name(r["name"])
+    if key not in seen_names_csv:
+        seen_names_csv.add(key)
+        unique_rows.append(r)
+print(f"After CSV dedup   : {len(unique_rows)}  (dropped {len(rows) - len(unique_rows)} intra-CSV dupes)")
+rows = unique_rows
+
+# ── Fetch existing venues from DB ─────────────────────────────────────────────
+print("\nFetching existing venues from DB …")
+existing_names  = set()   # normalised names
+existing_coords = set()   # (lat 5dp, lng 5dp)
+
 try:
-    # Use a wide search to fetch all published venues
     ex_res = requests.get(
         f"{API}/venues",
         params={"pageSize": "9999", "publishedOnly": "true"},
         timeout=30
     )
     if ex_res.status_code == 200:
-        ex_body = ex_res.json()
-        ex_items = ex_body.get("items", [])
+        ex_items = ex_res.json().get("items", [])
         for v in ex_items:
-            lat_r = round(float(v["lat"]), 4)
-            lng_r = round(float(v["lng"]), 4)
-            existing_coords.add((lat_r, lng_r))
-        print(f"  {len(ex_items)} existing venues loaded ({len(existing_coords)} unique coords)")
+            existing_names.add(norm_name(v["name"]))
+            existing_coords.add(coord_key(float(v["lat"]), float(v["lng"])))
+        print(f"  {len(ex_items)} existing venues  "
+              f"({len(existing_names)} unique names, {len(existing_coords)} unique coords)")
     else:
-        print(f"  [WARN] Could not fetch existing venues ({ex_res.status_code}), skipping dedup")
+        print(f"  [WARN] {ex_res.status_code} — dedup disabled, ALL rows will be attempted")
 except Exception as e:
-    print(f"  [WARN] Dedup fetch failed: {e}")
+    print(f"  [WARN] {e} — dedup disabled, ALL rows will be attempted")
 
-def is_duplicate(lat, lng):
-    # Round to 4 decimal places (~11m precision) for matching
-    return (round(lat, 4), round(lng, 4)) in existing_coords
+def is_db_duplicate(name: str, lat: float, lng: float) -> str | None:
+    if norm_name(name) in existing_names:
+        return "name"
+    if coord_key(lat, lng) in existing_coords:
+        return "coord"
+    return None
 
-# Filter out duplicates
 before = len(rows)
-rows = [r for r in rows if not is_duplicate(float(r["lat"]), float(r["lng"]))]
-print(f"After dedup: {len(rows)}  (skipped {before - len(rows)} already in DB)\n")
+new_rows, skipped = [], 0
+for r in rows:
+    reason = is_db_duplicate(r["name"], float(r["lat"]), float(r["lng"]))
+    if reason:
+        skipped += 1
+    else:
+        new_rows.append(r)
 
-# ── Import ───────────────────────────────────────────────────────────────────
+rows = new_rows
+print(f"\nAfter DB dedup    : {len(rows)}  (skipped {skipped} already in DB)\n")
+
+# ── Import ────────────────────────────────────────────────────────────────────
 ok = err = 0
 
 for i, row in enumerate(rows, 1):
@@ -141,17 +170,20 @@ for i, row in enumerate(rows, 1):
     }
 
     if args.dry:
-        print(f"[DRY] {i}/{len(rows)}  {payload['name']:40s}  {category}")
+        print(f"[DRY] {i}/{len(rows)}  {payload['name']:45s}  {category}")
         ok += 1
         continue
 
     try:
         r = requests.post(f"{API}/admin/venues", headers=headers,
-                          data=json.dumps(payload), timeout=15)
+                          json=payload, timeout=15)
         if r.status_code in (200, 201):
             ok += 1
+            # Add to seen sets so later rows in this batch don't re-import
+            existing_names.add(norm_name(payload["name"]))
+            existing_coords.add(coord_key(lat, lng))
             if i % 50 == 0:
-                print(f"  {i}/{len(rows)} ({ok} ok, {err} err)")
+                print(f"  {i}/{len(rows)}  ({ok} ok, {err} err)")
         else:
             err += 1
             print(f"  ✗ [{r.status_code}] {payload['name']}: {r.text[:120]}")

@@ -38,9 +38,11 @@ if not API_KEY:
 LAT_MIN, LAT_MAX = 13.35, 14.15
 LNG_MIN, LNG_MAX = 100.10, 101.10
 
-# Grid 10×10 = 100 cells × 2 types = 200 requests (~$6 at Places API rates)
-GRID_N = 10
-SEARCH_RADIUS = 4000   # metres — tighter radius for denser grid reduces overlap
+# Grid 12×12 = 144 cells × 2 types = 288 requests (~$9 at Places API rates)
+# Smaller radius (3000m) splits the dense inner-city cells that hit the 20-result cap,
+# surfacing venues that were hidden behind the cap in the 10×10 run.
+GRID_N = 12
+SEARCH_RADIUS = 3000   # metres
 
 # Place types we want (Google's type names)
 INCLUDE_TYPES = ["bar", "night_club"]
