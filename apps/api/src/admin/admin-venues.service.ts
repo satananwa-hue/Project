@@ -98,4 +98,30 @@ export class AdminVenuesService {
     }
     await this.prisma.venue.delete({ where: { id } });
   }
+
+  async cleanupNonBarVenues() {
+    // Mark venues that have no reviews and aren't a recognised nightlife category as closed.
+    // This removes stale imported restaurants / drink shops without touching reviewed venues.
+    const result = await this.prisma.venue.updateMany({
+      where: {
+        category: 'OTHER',
+        isClosed: false,
+        reviews: { none: {} },
+      },
+      data: { isClosed: true },
+    });
+    return { closed: result.count };
+  }
+
+  async cleanupUnreviewedVenues() {
+    // Nuclear option: mark ALL unreviewed venues as closed so you can start fresh.
+    const result = await this.prisma.venue.updateMany({
+      where: {
+        isClosed: false,
+        reviews: { none: {} },
+      },
+      data: { isClosed: true },
+    });
+    return { closed: result.count };
+  }
 }

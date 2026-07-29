@@ -112,6 +112,11 @@ export default async function VenuePage({ params }: Props) {
       </p>
       <h1 className="mt-1 text-3xl font-semibold tracking-tight">{venue.name}</h1>
       <p className="mt-2 text-muted">{venue.address}</p>
+      {venue.createdByName && (
+        <p className="mt-1.5 text-xs text-muted/60">
+          Added by <span className="font-medium text-muted">{venue.createdByName}</span>
+        </p>
+      )}
 
       {/* Rating + directions */}
       <div className="mt-4 flex items-center gap-4">

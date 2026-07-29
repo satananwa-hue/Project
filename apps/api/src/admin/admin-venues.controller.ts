@@ -55,4 +55,16 @@ export class AdminVenuesController {
   async remove(@Param('id') id: string) {
     await this.adminVenuesService.remove(id);
   }
+
+  /** Mark all OTHER-category venues with no reviews as isClosed. */
+  @Post('cleanup/non-bar')
+  cleanupNonBar() {
+    return this.adminVenuesService.cleanupNonBarVenues();
+  }
+
+  /** Mark ALL unreviewed venues as isClosed. Use before a fresh import. */
+  @Post('cleanup/unreviewed')
+  cleanupUnreviewed() {
+    return this.adminVenuesService.cleanupUnreviewedVenues();
+  }
 }

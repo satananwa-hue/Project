@@ -89,9 +89,9 @@ export function AddVenueClient() {
     return (
       <div className="flex flex-col items-center gap-4 py-12 text-center">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/20 text-3xl">✓</div>
-        <h2 className="text-xl font-semibold">Venue submitted!</h2>
+        <h2 className="text-xl font-semibold">Venue added!</h2>
         <p className="max-w-xs text-sm text-muted">
-          Your suggestion will be reviewed before appearing on the map. Thank you!
+          It&apos;s now live on the map. Thank you for contributing!
         </p>
         <button
           onClick={() => router.push('/')}
