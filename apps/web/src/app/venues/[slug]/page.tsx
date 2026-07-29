@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import type { ReviewSummaryDto } from "@chiwitrakmaochaaowelarakkhrai/shared-types";
 import { PRICE_RANGE_SYMBOLS } from "@chiwitrakmaochaaowelarakkhrai/shared-types";
+import type { ReviewSummaryDto } from "@chiwitrakmaochaaowelarakkhrai/shared-types";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getVenueBySlug } from "@/lib/api";
 import { getSession } from "@/lib/session";
 import { VenueMap } from "@/components/venue-map-loader";
 import { WriteReviewForm } from "./write-review-form";
+import { ReviewCard } from "./review-card";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -40,26 +41,6 @@ const DAY_ABBR: Record<string, string> = {
   Friday: "Fri", Saturday: "Sat", Sunday: "Sun",
 };
 
-function relativeDate(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const days = Math.floor(diff / 86400000);
-  if (days > 365) return `${Math.floor(days / 365)}y ago`;
-  if (days > 30) return `${Math.floor(days / 30)}mo ago`;
-  if (days > 0) return `${days}d ago`;
-  const hours = Math.floor(diff / 3600000);
-  if (hours > 0) return `${hours}h ago`;
-  return "Just now";
-}
-
-function formatTag(tag: string): string {
-  const parts = tag.split("-");
-  if (parts.length === 2) {
-    const cat = parts[0][0].toUpperCase() + parts[0].slice(1);
-    const n = parseInt(parts[1], 10);
-    if (!isNaN(n)) return `${cat} ${"★".repeat(n)}${"☆".repeat(5 - n)}`;
-  }
-  return tag;
-}
 
 export default async function VenuePage({ params }: Props) {
   const { slug } = await params;
@@ -198,44 +179,12 @@ export default async function VenuePage({ params }: Props) {
         ) : (
           <div className="flex flex-col gap-4">
             {venue.reviews.map((review: ReviewSummaryDto) => (
-              <div key={review.id} className="rounded-lg border border-border bg-surface p-4">
-                <div className="flex items-center gap-3">
-                  {review.author.avatarUrl ? (
-                    <img
-                      src={review.author.avatarUrl}
-                      alt={review.author.name}
-                      className="h-8 w-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-xs font-bold text-accent">
-                      {review.author.name[0]?.toUpperCase() ?? "?"}
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-sm font-medium">{review.author.name}</p>
-                    <p className="text-xs text-muted">{relativeDate(review.createdAt)}</p>
-                  </div>
-                  <div className="ml-auto flex items-center gap-1 text-sm">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <span key={s} className={s <= review.rating ? "text-accent" : "text-border"}>
-                        ★
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                {review.textBody && (
-                  <p className="mt-3 text-sm leading-relaxed">{review.textBody}</p>
-                )}
-                {review.tags.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {review.tags.map((tag: string) => (
-                      <span key={tag} className="rounded-full bg-accent/10 px-2 py-0.5 text-xs text-accent/80">
-                        {formatTag(tag)}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <ReviewCard
+                key={review.id}
+                review={review}
+                slug={slug}
+                canDelete={session?.id === review.author.id}
+              />
             ))}
           </div>
         )}

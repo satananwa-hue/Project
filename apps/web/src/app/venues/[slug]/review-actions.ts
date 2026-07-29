@@ -69,3 +69,31 @@ export async function submitReviewAction(
   revalidatePath(`/venues/${slug}`);
   return { ok: true };
 }
+
+export async function deleteReviewAction(
+  reviewId: string,
+  slug: string,
+): Promise<ActionResult> {
+  const token = await getSessionToken();
+  if (!token) return { ok: false, error: "You must be logged in." };
+
+  const res = await fetch(`${API_BASE_URL}/reviews/${reviewId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (res.ok || res.status === 204) {
+    revalidatePath(`/venues/${slug}`);
+    return { ok: true };
+  }
+
+  try {
+    const body = (await res.json()) as { message?: string | string[] };
+    const msg = Array.isArray(body.message)
+      ? body.message.join(", ")
+      : (body.message ?? "Failed to delete review.");
+    return { ok: false, error: msg };
+  } catch {
+    return { ok: false, error: "Failed to delete review." };
+  }
+}
