@@ -193,7 +193,11 @@ export default async function VenuePage({ params }: Props) {
       {/* Write review */}
       <div className="mt-8">
         {session ? (
-          <WriteReviewForm venueId={venue.id} slug={slug} />
+          venue.reviews.some((r: ReviewSummaryDto) => r.author.id === session.id) ? (
+            <p className="text-sm text-muted">You&apos;ve already reviewed this venue.</p>
+          ) : (
+            <WriteReviewForm venueId={venue.id} slug={slug} />
+          )
         ) : (
           <p className="text-sm text-muted">
             <Link href="/login" className="underline hover:text-foreground">Sign in</Link>{" "}
