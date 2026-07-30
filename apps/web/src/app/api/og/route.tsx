@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
         style={{
           width: 1080,
           height: 1080,
-          background: BG,
+          background: 'transparent',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -200,7 +200,7 @@ export async function GET(req: NextRequest) {
           >
             <span style={{ fontSize: 18, color: MUTED }}>{category} · Bangkok</span>
             <span style={{ fontSize: 18, fontWeight: 800, color: ACCENT, letterSpacing: 2 }}>
-              NIGHTCHECK
+              Chiwitrakmao
             </span>
           </div>
         </div>
