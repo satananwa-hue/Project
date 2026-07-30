@@ -86,10 +86,11 @@ export default async function RootLayout({
         </header>
 
         {/* ── Page content ───────────────────────────────── */}
-        <main className="flex-1 min-h-0 overflow-y-auto pb-16 md:pb-0">{children}</main>
+        {/* pb-16 clears the fixed bottom nav on mobile */}
+        <main className="flex-1 min-h-0 pb-16 md:pb-0">{children}</main>
 
-        {/* ── Mobile bottom nav (hidden on md+) ──────────── */}
-        <nav className="md:hidden flex-shrink-0 border-t border-white/5 bg-background/90 backdrop-blur-xl z-50 sticky bottom-0">
+        {/* ── Mobile bottom nav — fixed at viewport bottom ── */}
+        <nav className="md:hidden fixed bottom-0 inset-x-0 border-t border-white/5 bg-background/90 backdrop-blur-xl z-50">
           <div className="flex justify-around items-center h-16 px-4">
             <Link href="/" className="flex flex-col items-center gap-0.5 text-accent">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
