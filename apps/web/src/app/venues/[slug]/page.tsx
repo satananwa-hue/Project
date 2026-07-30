@@ -4,7 +4,7 @@ import type { ReviewSummaryDto } from "@chiwitrakmaochaaowelarakkhrai/shared-typ
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getVenueBySlug } from "@/lib/api";
-import { getSession } from "@/lib/session";
+import { getSession, getSessionUserId } from "@/lib/session";
 import { VenueMap } from "@/components/venue-map-loader";
 import { WriteReviewForm } from "./write-review-form";
 import { ReviewCard } from "./review-card";
@@ -60,7 +60,11 @@ const DAY_ABBR: Record<string, string> = {
 
 export default async function VenuePage({ params }: Props) {
   const { slug } = await params;
-  const [venue, session] = await Promise.all([getVenueBySlug(slug), getSession()]);
+  const [venue, session, sessionUserId] = await Promise.all([
+    getVenueBySlug(slug),
+    getSession(),
+    getSessionUserId(),
+  ]);
   if (!venue) notFound();
 
   const jsonLd = {
@@ -201,8 +205,8 @@ export default async function VenuePage({ params }: Props) {
                 slug={slug}
                 venueName={venue.name}
                 venueCategory={venue.category}
-                canDelete={session?.id === review.author.id}
-                canShare={!!session}
+                canDelete={sessionUserId === review.author.id}
+                canShare={!!sessionUserId}
               />
             ))}
           </div>
@@ -211,8 +215,8 @@ export default async function VenuePage({ params }: Props) {
 
       {/* Write review */}
       <div className="mt-8">
-        {session ? (
-          venue.reviews.some((r: ReviewSummaryDto) => r.author.id === session.id) ? (
+        {sessionUserId ? (
+          venue.reviews.some((r: ReviewSummaryDto) => r.author.id === sessionUserId) ? (
             <p className="text-sm text-muted">You&apos;ve already reviewed this venue.</p>
           ) : (
             <WriteReviewForm venueId={venue.id} slug={slug} />
