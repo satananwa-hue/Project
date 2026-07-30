@@ -36,10 +36,11 @@ interface ReviewCardProps {
   };
   slug: string;
   venueName: string;
+  venueCategory?: string;
   canDelete: boolean;
 }
 
-export function ReviewCard({ review, slug, venueName, canDelete }: ReviewCardProps) {
+export function ReviewCard({ review, slug, venueName, venueCategory, canDelete }: ReviewCardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -69,27 +70,54 @@ export function ReviewCard({ review, slug, venueName, canDelete }: ReviewCardPro
   }
 
   async function handleShare() {
-    const url = `${window.location.origin}/venues/${slug}`;
-    const shareText = `${review.author.name} rated ${venueName} ${review.rating}/5 on NightCheck`;
+    // Build OG card URL with all review data for the transparent PNG
+    const ogParams = new URLSearchParams({
+      venue: venueName,
+      rating: String(review.rating),
+      ...(venueCategory && { category: venueCategory }),
+      text: review.textBody,
+      author: review.author.name,
+      ...(review.author.avatarUrl && { avatar: review.author.avatarUrl }),
+    });
+    const cardUrl = `${window.location.origin}/api/og?${ogParams.toString()}`;
 
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: `${venueName} — NightCheck`, text: shareText, url });
-        // Claim points after successful share
-        const res = await claimShareAction(review.id);
-        if (res.ok && res.points) {
-          setShareToast(`+${res.points} pts earned!`);
+    try {
+      const res = await fetch(cardUrl);
+      const blob = await res.blob();
+      const file = new File([blob], `${venueName.replace(/\s+/g, '-')}-review.png`, { type: 'image/png' });
+
+      if (navigator.canShare?.({ files: [file] })) {
+        // Mobile: native share sheet with the PNG — user picks Instagram, etc.
+        await navigator.share({
+          files: [file],
+          title: `${review.author.name}'s review of ${venueName}`,
+        });
+        const pts = await claimShareAction(review.id);
+        if (pts.ok && pts.points) {
+          setShareToast(`+${pts.points} pts earned!`);
           setTimeout(() => setShareToast(null), 3000);
         }
-      } catch {
-        // User cancelled share — no-op
+      } else {
+        // Desktop: download the PNG so user can post it manually
+        const objUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = objUrl;
+        a.download = file.name;
+        a.click();
+        URL.revokeObjectURL(objUrl);
+        setShareToast("Card downloaded!");
+        setTimeout(() => setShareToast(null), 3000);
+        claimShareAction(review.id).catch(() => {});
       }
-    } else {
-      await navigator.clipboard.writeText(url);
-      setShareToast("Link copied!");
-      setTimeout(() => setShareToast(null), 2500);
-      // Claim points on copy too
-      claimShareAction(review.id).catch(() => {});
+    } catch {
+      // Fallback: copy the venue link
+      try {
+        await navigator.clipboard.writeText(`${window.location.origin}/venues/${slug}`);
+        setShareToast("Link copied!");
+        setTimeout(() => setShareToast(null), 2500);
+      } catch {
+        // ignore
+      }
     }
   }
 

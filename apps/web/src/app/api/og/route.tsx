@@ -3,7 +3,6 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import type { NextRequest } from 'next/server';
 
-// Load font once at module scope (Node.js runtime only)
 let fontData: ArrayBuffer | null = null;
 function getFont(): ArrayBuffer | null {
   if (fontData) return fontData;
@@ -16,14 +15,9 @@ function getFont(): ArrayBuffer | null {
   }
 }
 
-// Card design: light background, circular avatar, dashed venue badge, stars
-// Matches the IG/Facebook share card mockup (1080×1080 square, ideal for IG Stories)
-const GOLD  = '#f59e0b';
-const BG    = '#f2f0eb';
-const CARD  = '#ffffff';
-const TEXT  = '#1c1c1e';
-const MUTED = '#6b7280';
-const ACCENT = '#7c3aed';
+const GOLD   = '#f59e0b';
+const ACCENT = '#a78bfa'; // lighter purple — visible on dark video backgrounds
+const SHADOW = 'drop-shadow(0 2px 8px rgba(0,0,0,0.8))';
 
 function StarRow({ rating }: { rating: number }) {
   const filled = Math.round(rating);
@@ -33,10 +27,10 @@ function StarRow({ rating }: { rating: number }) {
         <div
           key={s}
           style={{
-            width: 36,
-            height: 36,
+            width: 40,
+            height: 40,
             clipPath: 'polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)',
-            background: s <= filled ? GOLD : '#d1d5db',
+            background: s <= filled ? GOLD : 'rgba(255,255,255,0.25)',
           }}
         />
       ))}
@@ -52,13 +46,11 @@ export async function GET(req: NextRequest) {
   const category = (searchParams.get('category') ?? 'BAR').replace(/_/g, ' ');
   const text     = searchParams.get('text')   ?? '';
   const author   = searchParams.get('author') ?? '';
-  const avatar   = searchParams.get('avatar') ?? '';  // URL or empty
+  const avatar   = searchParams.get('avatar') ?? '';
 
-  const excerpt = text.length > 120 ? text.slice(0, 117) + '...' : text;
-  const font    = getFont();
-
-  // Venue label truncated for the badge
+  const excerpt    = text.length > 120 ? text.slice(0, 117) + '...' : text;
   const badgeLabel = venue.length > 32 ? venue.slice(0, 29) + '...' : venue;
+  const font       = getFont();
 
   return new ImageResponse(
     (
@@ -70,57 +62,53 @@ export async function GET(req: NextRequest) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: 60,
+          padding: 80,
         }}
       >
-        {/* Card */}
         <div
           style={{
             width: '100%',
-            background: CARD,
-            borderRadius: 32,
-            padding: '56px 64px',
+            background: 'transparent',
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center',
-            boxShadow: '0 8px 48px rgba(0,0,0,0.10)',
-            position: 'relative',
+            alignItems: 'flex-start',
+            gap: 0,
           }}
         >
           {/* Top row: avatar + badge */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 48, width: '100%' }}>
-            {/* Circular avatar */}
+
+            {/* Circular avatar with white ring */}
             <div
               style={{
-                width: 180,
-                height: 180,
+                width: 200,
+                height: 200,
                 borderRadius: '50%',
                 overflow: 'hidden',
-                background: '#e5e7eb',
                 flexShrink: 0,
-                border: '4px solid #e5e7eb',
+                border: '5px solid rgba(255,255,255,0.9)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                background: 'rgba(255,255,255,0.15)',
               }}
             >
               {avatar ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatar} width={180} height={180} style={{ objectFit: 'cover' }} alt="" />
+                <img src={avatar} width={200} height={200} style={{ objectFit: 'cover' }} alt="" />
               ) : (
-                // Default mascot placeholder — purple circle with initials
                 <div
                   style={{
-                    width: 180,
-                    height: 180,
+                    width: 200,
+                    height: 200,
                     borderRadius: '50%',
-                    background: `${ACCENT}22`,
+                    background: 'rgba(167,139,250,0.3)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: 72,
+                    fontSize: 80,
                     fontWeight: 800,
-                    color: ACCENT,
+                    color: '#ffffff',
                   }}
                 >
                   {(author || 'U')[0].toUpperCase()}
@@ -128,26 +116,29 @@ export async function GET(req: NextRequest) {
               )}
             </div>
 
-            {/* Right column: dashed badge + label */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20, flex: 1 }}>
-              {/* Dashed oval venue badge */}
+            {/* Right column */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 22, flex: 1 }}>
+
+              {/* Dashed oval venue badge — white on transparent */}
               <div
                 style={{
-                  border: '3px dashed #9ca3af',
+                  border: '3px dashed rgba(255,255,255,0.85)',
                   borderRadius: 99,
-                  padding: '16px 32px',
+                  padding: '16px 36px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  maxWidth: 520,
+                  maxWidth: 540,
+                  background: 'rgba(0,0,0,0.25)',
                 }}
               >
                 <span
                   style={{
-                    fontSize: badgeLabel.length > 20 ? 26 : 30,
+                    fontSize: badgeLabel.length > 20 ? 28 : 32,
                     fontWeight: 700,
-                    color: TEXT,
+                    color: '#ffffff',
                     textAlign: 'center',
+                    filter: SHADOW,
                   }}
                 >
                   {badgeLabel}
@@ -157,8 +148,15 @@ export async function GET(req: NextRequest) {
               {/* Stars */}
               <StarRow rating={rating} />
 
-              {/* "User Review" label */}
-              <span style={{ fontSize: 24, color: MUTED, fontWeight: 500 }}>
+              {/* Review label */}
+              <span
+                style={{
+                  fontSize: 26,
+                  color: 'rgba(255,255,255,0.85)',
+                  fontWeight: 600,
+                  filter: SHADOW,
+                }}
+              >
                 {author ? `${author}'s Review` : 'User Review'}
               </span>
             </div>
@@ -168,19 +166,20 @@ export async function GET(req: NextRequest) {
           {excerpt && (
             <div
               style={{
-                marginTop: 48,
+                marginTop: 52,
                 width: '100%',
-                borderTop: '1px solid #e5e7eb',
+                borderTop: '1px solid rgba(255,255,255,0.3)',
                 paddingTop: 40,
                 display: 'flex',
               }}
             >
               <span
                 style={{
-                  fontSize: 28,
-                  color: '#374151',
+                  fontSize: 30,
+                  color: 'rgba(255,255,255,0.92)',
                   lineHeight: 1.6,
                   fontStyle: 'italic',
+                  filter: SHADOW,
                 }}
               >
                 "{excerpt}"
@@ -188,18 +187,34 @@ export async function GET(req: NextRequest) {
             </div>
           )}
 
-          {/* Footer branding */}
+          {/* Footer */}
           <div
             style={{
-              marginTop: 48,
+              marginTop: 52,
               width: '100%',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
             }}
           >
-            <span style={{ fontSize: 18, color: MUTED }}>{category} · Bangkok</span>
-            <span style={{ fontSize: 18, fontWeight: 800, color: ACCENT, letterSpacing: 2 }}>
+            <span
+              style={{
+                fontSize: 20,
+                color: 'rgba(255,255,255,0.65)',
+                filter: SHADOW,
+              }}
+            >
+              {category} · Bangkok
+            </span>
+            <span
+              style={{
+                fontSize: 20,
+                fontWeight: 800,
+                color: ACCENT,
+                letterSpacing: 2,
+                filter: SHADOW,
+              }}
+            >
               Chiwitrakmao
             </span>
           </div>

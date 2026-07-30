@@ -200,6 +200,7 @@ export default async function VenuePage({ params }: Props) {
                 review={review}
                 slug={slug}
                 venueName={venue.name}
+                venueCategory={venue.category}
                 canDelete={session?.id === review.author.id}
               />
             ))}
