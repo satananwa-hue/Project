@@ -78,41 +78,34 @@ export async function GET(req: NextRequest) {
           {/* Top row: avatar + badge */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 48, width: '100%' }}>
 
-            {/* Circular avatar with white ring */}
+            {/* Hexagon level avatar */}
             <div
               style={{
                 width: 200,
                 height: 200,
-                borderRadius: '50%',
+                clipPath: 'polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)',
                 overflow: 'hidden',
                 flexShrink: 0,
-                border: '5px solid rgba(255,255,255,0.9)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'rgba(255,255,255,0.15)',
+                background: 'rgba(167,139,250,0.5)',
               }}
             >
               {avatar ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatar} width={200} height={200} style={{ objectFit: 'cover' }} alt="" />
+                <img src={avatar} width={200} height={200} style={{ objectFit: 'cover', width: 200, height: 200 }} alt="" />
               ) : (
-                <div
+                <span
                   style={{
-                    width: 200,
-                    height: 200,
-                    borderRadius: '50%',
-                    background: 'rgba(167,139,250,0.3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 80,
+                    fontSize: 88,
                     fontWeight: 800,
                     color: '#ffffff',
+                    filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.6))',
                   }}
                 >
                   {(author || 'U')[0].toUpperCase()}
-                </div>
+                </span>
               )}
             </div>
 

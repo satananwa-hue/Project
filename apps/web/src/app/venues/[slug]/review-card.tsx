@@ -4,6 +4,51 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteReviewAction, claimShareAction } from "./review-actions";
 
+const HEX_CLIP = 'polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)';
+
+function LevelAvatar({ name, avatarUrl, size = 32 }: { name: string; avatarUrl: string | null; size?: number }) {
+  const initial = name[0]?.toUpperCase() ?? "?";
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        clipPath: HEX_CLIP,
+        overflow: 'hidden',
+        flexShrink: 0,
+      }}
+    >
+      {avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={avatarUrl}
+          alt={name}
+          width={size}
+          height={size}
+          style={{ width: size, height: size, objectFit: 'cover', display: 'block' }}
+        />
+      ) : (
+        <div
+          style={{
+            width: size,
+            height: size,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'var(--color-accent, #a78bfa)',
+            opacity: 0.85,
+            fontSize: size * 0.4,
+            fontWeight: 700,
+            color: '#fff',
+          }}
+        >
+          {initial}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function formatTag(tag: string): string {
   const parts = tag.split("-");
   if (parts.length === 2) {
@@ -38,9 +83,10 @@ interface ReviewCardProps {
   venueName: string;
   venueCategory?: string;
   canDelete: boolean;
+  canShare: boolean;
 }
 
-export function ReviewCard({ review, slug, venueName, venueCategory, canDelete }: ReviewCardProps) {
+export function ReviewCard({ review, slug, venueName, venueCategory, canDelete, canShare }: ReviewCardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +116,6 @@ export function ReviewCard({ review, slug, venueName, venueCategory, canDelete }
   }
 
   async function handleShare() {
-    // Build OG card URL with all review data for the transparent PNG
     const ogParams = new URLSearchParams({
       venue: venueName,
       rating: String(review.rating),
@@ -87,7 +132,6 @@ export function ReviewCard({ review, slug, venueName, venueCategory, canDelete }
       const file = new File([blob], `${venueName.replace(/\s+/g, '-')}-review.png`, { type: 'image/png' });
 
       if (navigator.canShare?.({ files: [file] })) {
-        // Mobile: native share sheet with the PNG — user picks Instagram, etc.
         await navigator.share({
           files: [file],
           title: `${review.author.name}'s review of ${venueName}`,
@@ -98,7 +142,6 @@ export function ReviewCard({ review, slug, venueName, venueCategory, canDelete }
           setTimeout(() => setShareToast(null), 3000);
         }
       } else {
-        // Desktop: download the PNG so user can post it manually
         const objUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = objUrl;
@@ -110,7 +153,6 @@ export function ReviewCard({ review, slug, venueName, venueCategory, canDelete }
         claimShareAction(review.id).catch(() => {});
       }
     } catch {
-      // Fallback: copy the venue link
       try {
         await navigator.clipboard.writeText(`${window.location.origin}/venues/${slug}`);
         setShareToast("Link copied!");
@@ -124,17 +166,7 @@ export function ReviewCard({ review, slug, venueName, venueCategory, canDelete }
   return (
     <div className="rounded-lg border border-border bg-surface p-4">
       <div className="flex items-center gap-3">
-        {review.author.avatarUrl ? (
-          <img
-            src={review.author.avatarUrl}
-            alt={review.author.name}
-            className="h-8 w-8 rounded-full object-cover"
-          />
-        ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-xs font-bold text-accent">
-            {review.author.name[0]?.toUpperCase() ?? "?"}
-          </div>
-        )}
+        <LevelAvatar name={review.author.name} avatarUrl={review.author.avatarUrl} size={32} />
         <div>
           <p className="text-sm font-medium">{review.author.name}</p>
           <p className="text-xs text-muted">{relativeDate(review.createdAt)}</p>
@@ -148,8 +180,8 @@ export function ReviewCard({ review, slug, venueName, venueCategory, canDelete }
             ))}
           </div>
 
-          {/* Share button — shown on all cards */}
-          {!confirming && (
+          {/* Share button — logged-in users only */}
+          {canShare && !confirming && (
             <button
               onClick={handleShare}
               aria-label="Share review"
@@ -201,7 +233,6 @@ export function ReviewCard({ review, slug, venueName, venueCategory, canDelete }
         </div>
       )}
 
-      {/* Share toast */}
       {shareToast && (
         <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-accent">
           <span>✓</span>
@@ -209,7 +240,6 @@ export function ReviewCard({ review, slug, venueName, venueCategory, canDelete }
         </div>
       )}
 
-      {/* Inline delete confirm */}
       {confirming && (
         <div className="mt-3 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm">
           <span className="flex-1 text-red-400">Delete this review?</span>
