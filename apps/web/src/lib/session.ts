@@ -12,6 +12,12 @@ export async function getSessionToken(): Promise<string | null> {
   return (await cookies()).get(SESSION_COOKIE)?.value ?? null;
 }
 
+/** True if the session cookie exists — used to gate UI-only actions like share. */
+export async function hasSession(): Promise<boolean> {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  return !!token;
+}
+
 /** Decode JWT locally — no API call, never times out. Returns user id or null. */
 export async function getSessionUserId(): Promise<string | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
@@ -19,9 +25,10 @@ export async function getSessionUserId(): Promise<string | null> {
   try {
     const payloadB64 = token.split('.')[1];
     if (!payloadB64) return null;
-    const json = Buffer.from(payloadB64, 'base64url').toString('utf-8');
-    const payload = JSON.parse(json) as { sub?: string; exp?: number };
-    if (payload.exp && payload.exp * 1000 < Date.now()) return null;
+    // Use standard base64 decode (replace base64url chars) for max compatibility
+    const base64 = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
+    const json = Buffer.from(base64, 'base64').toString('utf-8');
+    const payload = JSON.parse(json) as { sub?: unknown };
     return typeof payload.sub === 'string' ? payload.sub : null;
   } catch {
     return null;
