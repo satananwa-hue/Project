@@ -77,7 +77,7 @@ interface ReviewCardProps {
     textBody: string;
     tags: string[];
     createdAt: string;
-    author: { id: string; name: string; avatarUrl: string | null };
+    author: { id: string; name: string; avatarUrl: string | null; level: number };
   };
   slug: string;
   venueName: string;
@@ -122,7 +122,7 @@ export function ReviewCard({ review, slug, venueName, venueCategory, canDelete, 
       ...(venueCategory && { category: venueCategory }),
       text: review.textBody,
       author: review.author.name,
-      ...(review.author.avatarUrl && { avatar: review.author.avatarUrl }),
+      level: String(review.author.level ?? 1),
     });
     const cardUrl = `${window.location.origin}/api/og?${ogParams.toString()}`;
 

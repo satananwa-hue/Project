@@ -7,6 +7,7 @@ import type {
   VenueListItemDto,
   VenueSearchInput,
 } from '@chiwitrakmaochaaowelarakkhrai/shared-types';
+import { getReputationLevel } from '@chiwitrakmaochaaowelarakkhrai/shared-types';
 
 function parseJsonArray(v: unknown): string[] {
   if (Array.isArray(v)) return v as string[];
@@ -91,7 +92,7 @@ export class VenuesService {
         lastEditedBy: { select: { id: true, name: true } },
         reviews: {
           where: { isPublished: true },
-          include: { account: { select: { id: true, name: true, avatarUrl: true } } },
+          include: { account: { select: { id: true, name: true, avatarUrl: true, points: true } } },
           orderBy: { createdAt: 'desc' },
           take: 20,
         },
@@ -142,6 +143,7 @@ export class VenuesService {
           id: r.account.id,
           name: r.account.name,
           avatarUrl: r.account.avatarUrl,
+          level: getReputationLevel(r.account.points),
         },
       })),
     };

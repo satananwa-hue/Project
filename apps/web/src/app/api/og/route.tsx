@@ -15,6 +15,20 @@ function getFont(): ArrayBuffer | null {
   }
 }
 
+const levelImageCache: Record<number, string> = {};
+function getLevelImageSrc(level: number): string {
+  const lvl = Math.min(Math.max(Math.round(level), 1), 5);
+  if (levelImageCache[lvl]) return levelImageCache[lvl];
+  try {
+    const buf = readFileSync(join(process.cwd(), `public/levels/level_${lvl}.png`));
+    const b64 = buf.toString('base64');
+    levelImageCache[lvl] = `data:image/png;base64,${b64}`;
+    return levelImageCache[lvl];
+  } catch {
+    return '';
+  }
+}
+
 const GOLD   = '#f59e0b';
 const ACCENT = '#a78bfa'; // lighter purple — visible on dark video backgrounds
 const SHADOW = 'drop-shadow(0 2px 8px rgba(0,0,0,0.8))';
@@ -46,11 +60,12 @@ export async function GET(req: NextRequest) {
   const category = (searchParams.get('category') ?? 'BAR').replace(/_/g, ' ');
   const text     = searchParams.get('text')   ?? '';
   const author   = searchParams.get('author') ?? '';
-  const avatar   = searchParams.get('avatar') ?? '';
+  const level    = parseInt(searchParams.get('level') ?? '1', 10);
 
-  const excerpt    = text.length > 120 ? text.slice(0, 117) + '...' : text;
-  const badgeLabel = venue.length > 32 ? venue.slice(0, 29) + '...' : venue;
-  const font       = getFont();
+  const excerpt      = text.length > 120 ? text.slice(0, 117) + '...' : text;
+  const badgeLabel   = venue.length > 32 ? venue.slice(0, 29) + '...' : venue;
+  const font         = getFont();
+  const levelImgSrc  = getLevelImageSrc(level);
 
   return new ImageResponse(
     (
@@ -81,29 +96,22 @@ export async function GET(req: NextRequest) {
             {/* Hexagon level avatar */}
             <div
               style={{
-                width: 200,
-                height: 200,
+                width: 220,
+                height: 220,
                 clipPath: 'polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)',
-                overflow: 'hidden',
                 flexShrink: 0,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'rgba(167,139,250,0.5)',
+                background: 'rgba(167,139,250,0.25)',
+                overflow: 'hidden',
               }}
             >
-              {avatar ? (
+              {levelImgSrc ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatar} width={200} height={200} style={{ objectFit: 'cover', width: 200, height: 200 }} alt="" />
+                <img src={levelImgSrc} width={220} height={220} style={{ objectFit: 'contain', width: 220, height: 220 }} alt="" />
               ) : (
-                <span
-                  style={{
-                    fontSize: 88,
-                    fontWeight: 800,
-                    color: '#ffffff',
-                    filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.6))',
-                  }}
-                >
+                <span style={{ fontSize: 88, fontWeight: 800, color: '#ffffff' }}>
                   {(author || 'U')[0].toUpperCase()}
                 </span>
               )}

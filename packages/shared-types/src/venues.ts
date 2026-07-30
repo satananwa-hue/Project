@@ -73,5 +73,5 @@ export interface ReviewSummaryDto {
   tags: string[];
   isPublished: boolean;
   createdAt: string;
-  author: { id: string; name: string; avatarUrl: string | null };
+  author: { id: string; name: string; avatarUrl: string | null; level: number };
 }
