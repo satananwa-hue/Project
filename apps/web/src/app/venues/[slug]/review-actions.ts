@@ -70,6 +70,24 @@ export async function submitReviewAction(
   return { ok: true };
 }
 
+export async function claimShareAction(
+  reviewId: string,
+): Promise<{ ok: boolean; points?: number; error?: string }> {
+  const token = await getSessionToken();
+  if (!token) return { ok: false, error: "Not logged in." };
+
+  const res = await fetch(`${API_BASE_URL}/reviews/${reviewId}/social-share`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (res.ok) {
+    const body = (await res.json()) as { points: number };
+    return { ok: true, points: body.points };
+  }
+  return { ok: false };
+}
+
 export async function deleteReviewAction(
   reviewId: string,
   slug: string,

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { deleteReviewAction } from "./review-actions";
+import { deleteReviewAction, claimShareAction } from "./review-actions";
 
 function formatTag(tag: string): string {
   const parts = tag.split("-");
@@ -35,14 +35,16 @@ interface ReviewCardProps {
     author: { id: string; name: string; avatarUrl: string | null };
   };
   slug: string;
+  venueName: string;
   canDelete: boolean;
 }
 
-export function ReviewCard({ review, slug, canDelete }: ReviewCardProps) {
+export function ReviewCard({ review, slug, venueName, canDelete }: ReviewCardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [shareToast, setShareToast] = useState<string | null>(null);
 
   function handleDeleteClick() {
     setConfirming(true);
@@ -66,6 +68,31 @@ export function ReviewCard({ review, slug, canDelete }: ReviewCardProps) {
     });
   }
 
+  async function handleShare() {
+    const url = `${window.location.origin}/venues/${slug}`;
+    const shareText = `${review.author.name} rated ${venueName} ${review.rating}/5 on NightCheck`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `${venueName} — NightCheck`, text: shareText, url });
+        // Claim points after successful share
+        const res = await claimShareAction(review.id);
+        if (res.ok && res.points) {
+          setShareToast(`+${res.points} pts earned!`);
+          setTimeout(() => setShareToast(null), 3000);
+        }
+      } catch {
+        // User cancelled share — no-op
+      }
+    } else {
+      await navigator.clipboard.writeText(url);
+      setShareToast("Link copied!");
+      setTimeout(() => setShareToast(null), 2500);
+      // Claim points on copy too
+      claimShareAction(review.id).catch(() => {});
+    }
+  }
+
   return (
     <div className="rounded-lg border border-border bg-surface p-4">
       <div className="flex items-center gap-3">
@@ -84,7 +111,7 @@ export function ReviewCard({ review, slug, canDelete }: ReviewCardProps) {
           <p className="text-sm font-medium">{review.author.name}</p>
           <p className="text-xs text-muted">{relativeDate(review.createdAt)}</p>
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1">
           <div className="flex items-center gap-0.5 text-sm">
             {[1, 2, 3, 4, 5].map((s) => (
               <span key={s} className={s <= review.rating ? "text-accent" : "text-border"}>
@@ -92,12 +119,28 @@ export function ReviewCard({ review, slug, canDelete }: ReviewCardProps) {
               </span>
             ))}
           </div>
+
+          {/* Share button — shown on all cards */}
+          {!confirming && (
+            <button
+              onClick={handleShare}
+              aria-label="Share review"
+              className="ml-1 flex h-8 w-8 items-center justify-center rounded-full text-muted/40 transition-colors hover:bg-accent/10 hover:text-accent"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+              </svg>
+            </button>
+          )}
+
+          {/* Delete button — only for own reviews */}
           {canDelete && !confirming && (
             <button
               onClick={handleDeleteClick}
               disabled={isPending}
               aria-label="Delete review"
-              className="ml-1 flex h-8 w-8 items-center justify-center rounded-full text-muted/50 transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-muted/40 transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40"
             >
               {isPending ? (
                 <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -130,7 +173,15 @@ export function ReviewCard({ review, slug, canDelete }: ReviewCardProps) {
         </div>
       )}
 
-      {/* Inline confirm dialog */}
+      {/* Share toast */}
+      {shareToast && (
+        <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-accent">
+          <span>✓</span>
+          <span>{shareToast}</span>
+        </div>
+      )}
+
+      {/* Inline delete confirm */}
       {confirming && (
         <div className="mt-3 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm">
           <span className="flex-1 text-red-400">Delete this review?</span>

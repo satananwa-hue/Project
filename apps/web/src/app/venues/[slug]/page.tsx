@@ -13,6 +13,8 @@ type Props = {
   params: Promise<{ slug: string }>;
 };
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const venue = await getVenueBySlug(slug);
@@ -24,13 +26,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       ? `${venue.reviewCount} reviews. Rated ${venue.topRating.toFixed(1)}/5.`
       : `${venue.name} — ${venue.category} in ${venue.city}.`;
 
+  const ogParams = new URLSearchParams({
+    venue: venue.name,
+    category: venue.category,
+    ...(venue.topRating !== null && { rating: venue.topRating.toFixed(1) }),
+    count: String(venue.reviewCount),
+  });
+  const ogImage = `${siteUrl}/api/og?${ogParams.toString()}`;
+
   return {
     title,
     description,
     openGraph: {
       title,
       description,
-      images: venue.photos[0] ? [venue.photos[0]] : [],
+      images: [{ url: ogImage, width: 1080, height: 1080, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
     },
   };
 }
@@ -183,6 +199,7 @@ export default async function VenuePage({ params }: Props) {
                 key={review.id}
                 review={review}
                 slug={slug}
+                venueName={venue.name}
                 canDelete={session?.id === review.author.id}
               />
             ))}
