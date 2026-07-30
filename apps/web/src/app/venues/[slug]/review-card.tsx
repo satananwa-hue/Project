@@ -185,7 +185,7 @@ export function ReviewCard({ review, slug, venueName, venueCategory, canDelete, 
             <button
               onClick={handleShare}
               aria-label="Share review"
-              className="ml-1 flex h-8 w-8 items-center justify-center rounded-full text-muted/40 transition-colors hover:bg-accent/10 hover:text-accent"
+              className="ml-1 flex h-8 w-8 items-center justify-center rounded-full text-accent/70 transition-colors hover:bg-accent/10 hover:text-accent"
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
@@ -200,7 +200,7 @@ export function ReviewCard({ review, slug, venueName, venueCategory, canDelete, 
               onClick={handleDeleteClick}
               disabled={isPending}
               aria-label="Delete review"
-              className="flex h-8 w-8 items-center justify-center rounded-full text-muted/40 transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-red-400/70 transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40"
             >
               {isPending ? (
                 <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
