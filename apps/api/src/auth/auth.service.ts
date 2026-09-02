@@ -30,6 +30,7 @@ export class AuthService {
     const accessToken = await this.jwtService.signAsync({
       sub: account.id,
       role: account.role,
+      name: account.name,
     });
 
     return {
@@ -76,7 +77,7 @@ export class AuthService {
       data: newCodes.map((code) => ({ code, ownedByAccountId: account.id })),
     });
 
-    const accessToken = await this.jwtService.signAsync({ sub: account.id, role: account.role });
+    const accessToken = await this.jwtService.signAsync({ sub: account.id, role: account.role, name: account.name });
     return {
       accessToken,
       account: {

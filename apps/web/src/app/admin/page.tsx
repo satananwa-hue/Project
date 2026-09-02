@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation';
-import { getSession } from '@/lib/session';
+import { getSessionNavData } from '@/lib/session';
 import { AdminClient } from './admin-client';
 
 export const metadata = { title: 'Admin Panel' };
 
 export default async function AdminPage() {
-  const session = await getSession();
-  if (!session || session.role !== 'ADMINISTRATOR') redirect('/login');
+  const navData = await getSessionNavData();
+  if (!navData || navData.role !== 'ADMINISTRATOR') redirect('/login');
 
-  return <AdminClient currentUserId={session.id} />;
+  return <AdminClient currentUserId={navData.id} />;
 }

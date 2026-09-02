@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation';
-import { getSession } from '@/lib/session';
+import { hasSession } from '@/lib/session';
 import { AddVenueClient } from './add-venue-client';
 
 export const metadata = { title: 'Suggest a Venue' };
 
 export default async function AddVenuePage() {
-  const session = await getSession();
-  if (!session) redirect('/login');
+  const loggedIn = await hasSession();
+  if (!loggedIn) redirect('/login');
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8 md:py-12">

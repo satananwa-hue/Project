@@ -35,6 +35,33 @@ export async function getSessionUserId(): Promise<string | null> {
   }
 }
 
+export interface SessionNavData {
+  id: string;
+  role: string;
+  name: string;
+}
+
+/** Decode JWT locally — no API call. Returns id, role, name for nav rendering. */
+export async function getSessionNavData(): Promise<SessionNavData | null> {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+  try {
+    const payloadB64 = token.split('.')[1];
+    if (!payloadB64) return null;
+    const base64 = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
+    const json = Buffer.from(base64, 'base64').toString('utf-8');
+    const payload = JSON.parse(json) as { sub?: unknown; role?: unknown; name?: unknown };
+    if (typeof payload.sub !== 'string') return null;
+    return {
+      id: payload.sub,
+      role: typeof payload.role === 'string' ? payload.role : 'USER',
+      name: typeof payload.name === 'string' ? payload.name : '',
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function getSession(): Promise<UserProfile | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;

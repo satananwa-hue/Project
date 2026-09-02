@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
-import { getSession } from "@/lib/session";
+import { getSessionNavData } from "@/lib/session";
 import { ProfileAvatarButton, ReviewerProfileSheet, MobileProfileTrigger } from "@/components/reviewer-sidebar";
-import { REPUTATION_LEVELS } from "@chiwitrakmaochaaowelarakkhrai/shared-types";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -39,7 +38,7 @@ export const metadata: Metadata = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const profile = await getSession();
+  const navData = await getSessionNavData();
 
   return (
     <html
@@ -58,7 +57,7 @@ export default async function RootLayout({
               <nav className="hidden md:flex items-center gap-6 text-xs font-bold tracking-widest uppercase text-muted">
                 <Link href="/" className="hover:text-foreground transition-colors">Discovery</Link>
                 <Link href="/venues" className="hover:text-foreground transition-colors">Venues</Link>
-                {profile?.role === 'ADMINISTRATOR' && (
+                {navData?.role === 'ADMINISTRATOR' && (
                   <Link href="/admin" className="text-accent hover:text-accent/80 transition-colors">Admin</Link>
                 )}
               </nav>
@@ -66,7 +65,7 @@ export default async function RootLayout({
 
             {/* Right actions */}
             <nav className="flex items-center gap-3">
-              {!profile && (
+              {!navData && (
                 <Link
                   href="/login"
                   className="text-sm text-muted hover:text-foreground transition-colors"
@@ -74,11 +73,9 @@ export default async function RootLayout({
                   Login
                 </Link>
               )}
-              {profile && (
+              {navData && (
                 <ProfileAvatarButton
-                  level={profile.reputationLevel}
-                  levelName={REPUTATION_LEVELS[profile.reputationLevel] ?? "New Explorer"}
-                  displayName={profile.displayName}
+                  displayName={navData.name}
                 />
               )}
             </nav>
@@ -100,7 +97,7 @@ export default async function RootLayout({
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
               <span className="text-[9px] font-bold uppercase tracking-widest">Venues</span>
             </Link>
-            {profile ? (
+            {navData ? (
               <MobileProfileTrigger>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.58-7 8-7s8 3 8 7"/></svg>
                 <span className="text-[9px] font-bold uppercase tracking-widest">Profile</span>
@@ -119,7 +116,7 @@ export default async function RootLayout({
           © {new Date().getFullYear()} {siteName}. Bangkok nightlife, reviewed by people who were actually there.
         </footer>
 
-        {profile && <ReviewerProfileSheet profile={profile} />}
+        {navData && <ReviewerProfileSheet />}
       </body>
     </html>
   );

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getSessionToken, getSession } from '@/lib/session';
+import { getSessionToken, getSessionNavData } from '@/lib/session';
 import type { InviteDto } from '@chiwitrakmaochaaowelarakkhrai/shared-types';
 import { CopyButtons } from './copy-buttons';
 import { GenerateButton } from './generate-button';
@@ -7,8 +7,8 @@ import { GenerateButton } from './generate-button';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api';
 
 export default async function MyInvitesPage() {
-  const [token, session] = await Promise.all([getSessionToken(), getSession()]);
-  if (!token || !session) redirect('/login');
+  const [token, navData] = await Promise.all([getSessionToken(), getSessionNavData()]);
+  if (!token || !navData) redirect('/login');
 
   const res = await fetch(`${API_BASE_URL}/invites/mine`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -19,7 +19,7 @@ export default async function MyInvitesPage() {
   const invites = (await res.json()) as InviteDto[];
   const remaining = invites.filter((i) => !i.usedAt).length;
   const redeemed = invites.filter((i) => i.usedAt).length;
-  const isAdmin = session.role === 'ADMINISTRATOR';
+  const isAdmin = navData.role === 'ADMINISTRATOR';
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">

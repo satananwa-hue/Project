@@ -1,10 +1,9 @@
-import { getSession } from "@/lib/session";
+import { hasSession } from "@/lib/session";
 import { VenueMap } from "@/components/venue-map-loader";
 
 export default async function HomePage() {
-  const session = await getSession();
-  const canCreate = !!session;
-  const isLoggedIn = !!session;
+  const isLoggedIn = await hasSession();
+  const canCreate = isLoggedIn;
 
   return (
     <section className="relative h-full w-full">

@@ -4,7 +4,7 @@ import type { ReviewSummaryDto } from "@chiwitrakmaochaaowelarakkhrai/shared-typ
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getVenueBySlug } from "@/lib/api";
-import { getSession, getSessionUserId, hasSession } from "@/lib/session";
+import { getSessionUserId, hasSession } from "@/lib/session";
 import { VenueMap } from "@/components/venue-map-loader";
 import { WriteReviewForm } from "./write-review-form";
 import { ReviewCard } from "./review-card";
@@ -60,9 +60,8 @@ const DAY_ABBR: Record<string, string> = {
 
 export default async function VenuePage({ params }: Props) {
   const { slug } = await params;
-  const [venue, session, sessionUserId, loggedIn] = await Promise.all([
+  const [venue, sessionUserId, loggedIn] = await Promise.all([
     getVenueBySlug(slug),
-    getSession(),
     getSessionUserId(),
     hasSession(),
   ]);

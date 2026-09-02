@@ -42,15 +42,7 @@ export function MobileProfileTrigger({ children }: { children: React.ReactNode }
 }
 
 // Button rendered inside the header nav — outside Leaflet's event scope
-export function ProfileAvatarButton({
-  level,
-  levelName,
-  displayName,
-}: {
-  level: number;
-  levelName: string;
-  displayName?: string;
-}) {
+export function ProfileAvatarButton({ displayName }: { displayName?: string }) {
   function open() {
     window.dispatchEvent(new CustomEvent("open-profile-sheet"));
   }
@@ -60,9 +52,8 @@ export function ProfileAvatarButton({
       aria-label="Open profile"
       className="flex items-center gap-2 rounded-full border border-accent/30 bg-surface/60 px-2 py-1 hover:border-accent/60 hover:bg-surface transition-colors shadow-sm"
     >
-      <div className="h-7 w-7 overflow-hidden rounded-full border border-accent/50 flex-shrink-0">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`/levels/level_${level}.png`} alt={levelName} className="h-full w-full object-cover" />
+      <div className="h-7 w-7 overflow-hidden rounded-full border border-accent/50 flex-shrink-0 bg-accent/20 flex items-center justify-center">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-accent"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.58-7 8-7s8 3 8 7"/></svg>
       </div>
       {displayName && (
         <span className="text-xs font-semibold text-foreground/90 pr-1 max-w-[120px] truncate hidden sm:block">
@@ -73,24 +64,34 @@ export function ProfileAvatarButton({
   );
 }
 
-// Sheet rendered at root — listens for CustomEvent to open
-export function ReviewerProfileSheet({ profile }: { profile: UserProfile }) {
+// Sheet rendered at root — listens for CustomEvent to open; fetches profile lazily on first open
+export function ReviewerProfileSheet() {
   const [open, setOpen] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [invites, setInvites] = useState<InviteRow[] | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const level = profile.reputationLevel;
+  const level = profile?.reputationLevel ?? 1;
   const levelName = REPUTATION_LEVELS[level] ?? "New Explorer";
-  const { pct, ptsToNext, nextTitle } = levelProgress(profile.points, level);
-  const isAdmin = profile.role === "ADMINISTRATOR";
+  const { pct, ptsToNext, nextTitle } = levelProgress(profile?.points ?? 0, level);
+  const isAdmin = profile?.role === "ADMINISTRATOR";
 
   useEffect(() => {
     const handler = () => setOpen(true);
     window.addEventListener("open-profile-sheet", handler);
     return () => window.removeEventListener("open-profile-sheet", handler);
   }, []);
+
+  useEffect(() => {
+    if (open && profile === null) {
+      fetch("/api/me")
+        .then((r) => r.ok ? r.json() : null)
+        .then((d: UserProfile | null) => { if (d) setProfile(d); })
+        .catch(() => {});
+    }
+  }, [open, profile]);
 
   useEffect(() => {
     if (open && invites === null) {
@@ -147,18 +148,27 @@ export function ReviewerProfileSheet({ profile }: { profile: UserProfile }) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={`/levels/level_${level}.png`} alt={levelName} className="h-full w-full object-cover" />
             </div>
-            <div className="text-center">
-              <p className="text-lg font-semibold">{profile.displayName}</p>
-              <p className="text-sm text-muted">{profile.email}</p>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap justify-center">
-              <span className="rounded-full border border-accent/40 px-3 py-0.5 text-xs font-semibold uppercase tracking-wider text-accent">
-                {profile.role}
-              </span>
-              <span className="flex items-center gap-1 rounded-full border border-border px-3 py-0.5 text-xs text-muted">
-                ★ {profile.points} pts
-              </span>
-            </div>
+            {profile ? (
+              <>
+                <div className="text-center">
+                  <p className="text-lg font-semibold">{profile.displayName}</p>
+                  <p className="text-sm text-muted">{profile.email}</p>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap justify-center">
+                  <span className="rounded-full border border-accent/40 px-3 py-0.5 text-xs font-semibold uppercase tracking-wider text-accent">
+                    {profile.role}
+                  </span>
+                  <span className="flex items-center gap-1 rounded-full border border-border px-3 py-0.5 text-xs text-muted">
+                    ★ {profile.points} pts
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-2 animate-pulse">
+                <div className="h-4 w-32 rounded bg-border" />
+                <div className="h-3 w-44 rounded bg-border" />
+              </div>
+            )}
           </div>
 
           {/* Level card */}
