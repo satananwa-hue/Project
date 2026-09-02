@@ -53,6 +53,7 @@ export interface VenueListItemDto {
   topRating: number | null;
   reviewCount: number;
   distanceM: number | null;
+  isOpen: boolean | null;
 }
 
 export interface VenueDetailDto extends VenueListItemDto {

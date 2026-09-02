@@ -9,6 +9,69 @@ import type {
 } from '@chiwitrakmaochaaowelarakkhrai/shared-types';
 import { getReputationLevel } from '@chiwitrakmaochaaowelarakkhrai/shared-types';
 
+function parseTimeToMinutes(s: string): number | null {
+  const t = s.trim().toLowerCase().replace(/\s/g, '');
+  const m24 = /^(\d{1,2}):(\d{2})$/.exec(t);
+  if (m24) return parseInt(m24[1]) * 60 + parseInt(m24[2]);
+  const m12 = /^(\d{1,2})(?::(\d{2}))?(am|pm)$/.exec(t);
+  if (m12) {
+    let h = parseInt(m12[1]);
+    const min = m12[2] ? parseInt(m12[2]) : 0;
+    if (m12[3] === 'pm' && h !== 12) h += 12;
+    if (m12[3] === 'am' && h === 12) h = 0;
+    return h * 60 + min;
+  }
+  return null;
+}
+
+function computeIsOpen(hoursJson: unknown): boolean | null {
+  if (!hoursJson || typeof hoursJson !== 'object') return null;
+  const hours = hoursJson as Record<string, string>;
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  // Bangkok = UTC+7
+  const now = new Date();
+  const bkMs = now.getTime() + 7 * 60 * 60 * 1000;
+  const bk = new Date(bkMs);
+  const nowMins = bk.getUTCHours() * 60 + bk.getUTCMinutes();
+  const todayKey = days[bk.getUTCDay()];
+  const yesterdayKey = days[(bk.getUTCDay() + 6) % 7];
+
+  const parseRange = (key: string): [number, number] | null => {
+    const raw = hours[key];
+    if (!raw) return null;
+    const lower = raw.toLowerCase().replace(/\s/g, '');
+    if (lower === 'closed') return null;
+    const sep = lower.includes('–') ? '–' : '-';
+    const idx = lower.lastIndexOf(sep);
+    if (idx < 1) return null;
+    const a = parseTimeToMinutes(lower.slice(0, idx));
+    const b = parseTimeToMinutes(lower.slice(idx + sep.length));
+    if (a === null || b === null) return null;
+    return [a, b];
+  };
+
+  const today = parseRange(todayKey);
+  if (today) {
+    const [open, close] = today;
+    if (close > open) {
+      if (nowMins >= open && nowMins < close) return true;
+    } else {
+      // crosses midnight — open side is today
+      if (nowMins >= open) return true;
+      // after-midnight side is also today (e.g. 0:00–2:00) from yesterday's opener
+    }
+  }
+
+  const yesterday = parseRange(yesterdayKey);
+  if (yesterday) {
+    const [open, close] = yesterday;
+    if (close < open && nowMins < close) return true;
+  }
+
+  if (today || yesterday) return false;
+  return null;
+}
+
 function parseJsonArray(v: unknown): string[] {
   if (Array.isArray(v)) return v as string[];
   if (typeof v === 'string') {
@@ -173,7 +236,7 @@ export class VenuesService {
   }
 
   private async assembleListItems(
-    venues: ({ id: string; name: string; category: string; address: string; lat: number; lng: number; city: string; coverCharge: number | null; musicGenres: unknown; crowdTypes: unknown; priceRange: string | null; photos: unknown; isPublished: boolean; distanceM: number | null } & Record<string, unknown>)[],
+    venues: ({ id: string; name: string; category: string; address: string; lat: number; lng: number; city: string; coverCharge: number | null; musicGenres: unknown; crowdTypes: unknown; priceRange: string | null; hoursJson?: unknown; photos: unknown; isPublished: boolean; distanceM: number | null } & Record<string, unknown>)[],
   ): Promise<VenueListItemDto[]> {
     if (venues.length === 0) return [];
 
@@ -204,6 +267,7 @@ export class VenuesService {
       topRating: statsByVenue.get(venue.id)?._avg?.rating ?? null,
       reviewCount: statsByVenue.get(venue.id)?._count?._all ?? 0,
       distanceM: venue.distanceM,
+      isOpen: computeIsOpen(venue.hoursJson ?? null),
     }));
   }
 }

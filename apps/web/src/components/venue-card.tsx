@@ -51,20 +51,24 @@ export function VenueCard({ venue }: { venue: VenueListItemDto }) {
 
       {/* Card body */}
       <div className="flex flex-1 flex-col gap-2 p-4">
-        {/* Name + category + distance row */}
-        <div className="flex items-start gap-2">
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold leading-snug group-hover:text-accent truncate">{venue.name}</h3>
-            <div className="mt-1">
-              <CategoryBadge category={venue.category} />
-            </div>
+        {/* Name + category badge */}
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold leading-snug group-hover:text-accent truncate">{venue.name}</h3>
+          <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+            <CategoryBadge category={venue.category} />
+            {venue.isOpen !== null && (
+              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                venue.isOpen
+                  ? 'bg-green-500/15 text-green-400'
+                  : 'bg-red-500/15 text-red-400'
+              }`}>
+                {venue.isOpen ? 'Open' : 'Closed'}
+              </span>
+            )}
           </div>
-          {dist && (
-            <span className="flex-shrink-0 text-xs text-muted mt-0.5">{dist}</span>
-          )}
         </div>
 
-        {/* Rating + reviews */}
+        {/* Distance + rating row */}
         <div className="flex items-center gap-2 mt-auto">
           {venue.reviewCount > 0 && venue.topRating !== null ? (
             <>
@@ -77,6 +81,9 @@ export function VenueCard({ venue }: { venue: VenueListItemDto }) {
             </>
           ) : (
             <span className="text-xs text-muted">New · no reviews yet</span>
+          )}
+          {dist && (
+            <span className="ml-auto flex-shrink-0 text-xs text-muted">{dist}</span>
           )}
         </div>
       </div>

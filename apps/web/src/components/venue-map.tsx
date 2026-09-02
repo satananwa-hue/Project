@@ -112,7 +112,7 @@ export function VenueMap({
   const geoMode = externalMarkers === undefined;
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'granted' | 'denied'>('idle');
-  const [allMarkers, setAllMarkers] = useState<VenueMapMarker[]>([]);
+  const [allVenues, setAllVenues] = useState<VenueListItemDto[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const isLoggedInRef = useRef(isLoggedIn);
@@ -122,9 +122,9 @@ export function VenueMap({
     try {
       const res = await fetch(`${API_BASE}/venues?pageSize=5000`, { signal: AbortSignal.timeout(10000) });
       const data = (await res.json()) as { items: VenueListItemDto[] };
-      setAllMarkers((data.items ?? []).map(toMarker));
+      setAllVenues(data.items ?? []);
     } catch {
-      setAllMarkers([]);
+      setAllVenues([]);
     }
   };
 
@@ -146,9 +146,9 @@ export function VenueMap({
             { signal: AbortSignal.timeout(8000) },
           );
           const data = (await res.json()) as { items: VenueListItemDto[] };
-          setAllMarkers((data.items ?? []).map(toMarker));
+          setAllVenues(data.items ?? []);
         } catch {
-          setAllMarkers([]);
+          setAllVenues([]);
         }
       },
       () => { setGeoStatus('denied'); loadAllBangkok(); },
@@ -156,10 +156,11 @@ export function VenueMap({
     );
   }, [geoMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const baseMarkers = geoMode
-    ? (selectedCategory ? allMarkers.filter(m => m.categoryName === selectedCategory) : allMarkers)
-    : externalMarkers!;
+  const filteredVenues = geoMode
+    ? (selectedCategory ? allVenues.filter(v => v.category === selectedCategory) : allVenues)
+    : [];
 
+  const baseMarkers = geoMode ? filteredVenues.map(toMarker) : externalMarkers!;
   const markers = baseMarkers;
 
   const mapCenter: [number, number] = center ?? BANGKOK_CENTER;
@@ -259,20 +260,29 @@ export function VenueMap({
 
         {/* ── Mobile bottom sheet ────────────────────────── */}
         {geoMode && (
-          <MobileVenueSheet markers={markers} countLabel={countLabel} />
+          <MobileVenueSheet venues={filteredVenues} countLabel={countLabel} />
         )}
       </div>
     </div>
   );
 }
 
+const CATEGORY_BADGE_COLORS: Record<string, string> = {
+  BAR:        'bg-violet-500/15 text-violet-300',
+  CLUB:       'bg-blue-500/15 text-blue-300',
+  ROOFTOP:    'bg-teal-500/15 text-teal-300',
+  LIVE_MUSIC: 'bg-amber-500/15 text-amber-300',
+  LOUNGE:     'bg-pink-500/15 text-pink-300',
+  OTHER:      'bg-gray-500/15 text-gray-400',
+};
+
 /* ── Mobile bottom sheet ───────────────────────────────── */
-function MobileVenueSheet({ markers, countLabel }: { markers: VenueMapMarker[]; countLabel: string }) {
+function MobileVenueSheet({ venues, countLabel }: { venues: VenueListItemDto[]; countLabel: string }) {
   const [open, setOpen] = useState(false);
   return (
     <div
       className={`md:hidden absolute bottom-0 inset-x-0 z-[1000] glass-panel rounded-t-2xl shadow-2xl transition-all duration-300 ${
-        open ? 'h-[55%]' : 'h-14'
+        open ? 'h-[60%]' : 'h-14'
       }`}
     >
       {/* Handle + toggle */}
@@ -287,34 +297,64 @@ function MobileVenueSheet({ markers, countLabel }: { markers: VenueMapMarker[]; 
       </button>
 
       {open && (
-        <div className="overflow-y-auto h-[calc(100%-3.5rem)] px-4 pb-4 space-y-3">
-          {markers.length === 0 ? (
+        <div className="overflow-y-auto h-[calc(100%-3.5rem)] px-4 pb-4">
+          {venues.length === 0 ? (
             <p className="text-center text-sm text-muted mt-8">No venues found.</p>
           ) : (
-            markers.map((m) => (
-              <Link
-                key={m.id}
-                href={`/venues/${m.id}`}
-                className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0"
-              >
-                {m.coverPhoto && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={m.coverPhoto} alt={m.name} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{m.name}</p>
-                  {m.categoryName && (
-                    <p className="text-xs text-muted capitalize">{m.categoryName.replace('_', ' ').toLowerCase()}</p>
-                  )}
-                </div>
-                {m.rating && m.rating.reviewCount > 0 && (
-                  <span className="text-xs text-muted flex-shrink-0 flex items-center gap-1">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="#FBBF24" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                    {m.rating.overall.toFixed(1)}
-                  </span>
-                )}
-              </Link>
-            ))
+            <ul className="divide-y divide-border/40">
+              {venues.map((v) => (
+                <li key={v.id}>
+                  <Link
+                    href={`/venues/${v.id}`}
+                    className="flex items-center gap-3 py-3"
+                  >
+                    {/* Cover photo */}
+                    <div className="w-12 h-12 rounded-xl flex-shrink-0 overflow-hidden bg-surface-raised">
+                      {v.photos[0] ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={v.photos[0]} alt={v.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-muted/30">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{v.name}</p>
+                      <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                        <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${CATEGORY_BADGE_COLORS[v.category] ?? CATEGORY_BADGE_COLORS.OTHER}`}>
+                          {v.category.replace(/_/g, ' ')}
+                        </span>
+                        {v.isOpen !== null && (
+                          <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${v.isOpen ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>
+                            {v.isOpen ? 'Open' : 'Closed'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Rating + distance */}
+                    <div className="flex-shrink-0 text-right">
+                      {v.topRating !== null && v.reviewCount > 0 ? (
+                        <p className="text-xs font-semibold flex items-center gap-0.5 justify-end">
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="#FBBF24" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                          {v.topRating.toFixed(1)}
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-muted">New</p>
+                      )}
+                      {v.distanceM !== null && (
+                        <p className="text-[10px] text-muted mt-0.5">
+                          {v.distanceM < 1000 ? `${Math.round(v.distanceM)} m` : `${(v.distanceM / 1000).toFixed(1)} km`}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       )}

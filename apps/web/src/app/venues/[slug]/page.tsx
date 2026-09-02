@@ -193,7 +193,8 @@ export default async function VenuePage({ params }: Props) {
 
       {/* Reviews */}
       <div className="mt-10">
-        <h2 className="mb-4 text-xl font-semibold">Reviews</h2>
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted mb-1">Community Reviews</p>
+        <h2 className="mb-4 text-2xl font-semibold">Recent Activity</h2>
         {venue.reviews.length === 0 ? (
           <p className="text-sm text-muted">No reviews yet. Be the first!</p>
         ) : (

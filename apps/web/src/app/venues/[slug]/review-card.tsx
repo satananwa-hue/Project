@@ -189,7 +189,13 @@ export function ReviewCard({ review, slug, venueName, venueCategory, canDelete, 
       <div className="flex items-center gap-3">
         <LevelAvatar name={review.author.name} avatarUrl={review.author.avatarUrl} size={32} />
         <div>
-          <p className="text-sm font-medium">{review.author.name}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-sm font-medium">{review.author.name}</p>
+            <span className="rounded-full bg-accent/10 px-1.5 py-0.5 text-[9px] font-bold text-accent/70">Lv.{review.author.level ?? 1}</span>
+            {canDelete && (
+              <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-400 uppercase tracking-wide">You</span>
+            )}
+          </div>
           <p className="text-xs text-muted">{relativeDate(review.createdAt)}</p>
         </div>
         <div className="ml-auto flex items-center gap-0.5 text-sm">
